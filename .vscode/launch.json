@@ -1,0 +1,42 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'rust-game'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=rust-game",
+					"--package=rust-game"
+				],
+				"filter": {
+					"name": "rust-game",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'rust-game'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=rust-game",
+					"--package=rust-game"
+				],
+				"filter": {
+					"name": "rust-game",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}

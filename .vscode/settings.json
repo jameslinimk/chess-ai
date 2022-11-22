@@ -1,0 +1,31 @@
+{
+	"[rust]": {
+		"editor.defaultFormatter": "rust-lang.rust-analyzer"
+	},
+	"cSpell.words": [
+		"adjacents",
+		"astar",
+		"consts",
+		"cooldown",
+		"hashset",
+		"hspd",
+		"maplit",
+		"powf",
+		"rects",
+		"rustfmt",
+		"signum",
+		"spritesheet",
+		"spritesheets",
+		"trunc",
+		"vspd"
+	],
+	"files.exclude": {
+		"**/.git": true,
+		"**/.svn": true,
+		"**/.hg": true,
+		"**/CVS": true,
+		"**/.DS_Store": true,
+		"**/Thumbs.db": true,
+		"**/node_modules": true
+	}
+}

@@ -1,0 +1,40 @@
+{
+	"test": {
+		"scope": "rust",
+		"prefix": "test",
+		"description": "Creates a test function",
+		"body": [
+			"#[test]",
+			"fn test() {",
+			"\t$0",
+			"}"
+		]
+	},
+	"new": {
+		"scope": "rust",
+		"prefix": "new",
+		"description": "Create a new derive-new macro default value",
+		"body": [
+			"#[new(value = \"$1\")]",
+			"pub $2,"
+		]
+	},
+	"quick log": {
+		"scope": "rust",
+		"prefix": [
+			"quicklog",
+			"ql"
+		],
+		"description": "Quickly log a variable and its name",
+		"body": "println!(\"$1: {:?}\", $1);"
+	},
+	"quick print": {
+		"scope": "rust",
+		"prefix": [
+			"quickprint",
+			"qp"
+		],
+		"description": "Quickly println!",
+		"body": "println!(\"$1\");"
+	}
+}
