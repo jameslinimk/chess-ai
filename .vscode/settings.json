@@ -10,6 +10,7 @@
 		"hashset",
 		"hspd",
 		"maplit",
+		"passent",
 		"powf",
 		"rects",
 		"rustfmt",
