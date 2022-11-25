@@ -1,5 +1,5 @@
 use super::piece::Piece;
-use super::util::static_move;
+use super::util::{static_attacks, static_moves};
 use crate::board::{Board, ChessColor};
 use crate::util::Loc;
 
@@ -15,7 +15,7 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
         (-1, 1),
     ];
 
-    let mut moves = static_move(piece, board, &directions);
+    let mut moves = static_moves(piece, board, &directions);
 
     // Castling
     let can_castle = if piece.color == ChessColor::White {
@@ -46,4 +46,19 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     }
 
     moves
+}
+
+pub fn king_attacks(piece: &Piece) -> Vec<Loc> {
+    let directions = vec![
+        (0, -1),
+        (0, 1),
+        (1, -1),
+        (1, 0),
+        (1, 1),
+        (-1, -1),
+        (-1, 0),
+        (-1, 1),
+    ];
+
+    static_attacks(piece, &directions)
 }

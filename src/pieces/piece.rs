@@ -1,12 +1,12 @@
 use derive_new::new;
 use macroquad::texture::Texture2D;
 
-use super::bishop::bishop_moves;
-use super::king::king_moves;
-use super::knight::knight_moves;
-use super::pawn::pawn_moves;
-use super::queen::queen_moves;
-use super::rook::rook_moves;
+use super::bishop::{bishop_attacks, bishop_moves};
+use super::king::{king_attacks, king_moves};
+use super::knight::{knight_attacks, knight_moves};
+use super::pawn::{pawn_attacks, pawn_moves};
+use super::queen::{queen_attacks, queen_moves};
+use super::rook::{rook_attacks, rook_moves};
 use crate::assets::get_image;
 use crate::board::{Board, ChessColor};
 use crate::util::Loc;
@@ -39,6 +39,8 @@ impl Piece {
             return vec![];
         }
 
+        // TODO work on anti-check thingy
+
         match self.name {
             PieceNames::Pawn => pawn_moves(self, board),
             PieceNames::Knight => knight_moves(self, board),
@@ -60,14 +62,15 @@ impl Piece {
         }
     }
 
-    pub fn get_raw_moves(&self, board: &Board) -> Vec<Loc> {
+    /// Get squares that are attacked by this piece
+    pub fn get_attacks(&self, board: &Board) -> Vec<Loc> {
         match self.name {
-            PieceNames::Pawn => pawn_moves(self, board),
-            PieceNames::Knight => knight_moves(self, board),
-            PieceNames::King => king_moves(self, board),
-            PieceNames::Rook => rook_moves(self, board),
-            PieceNames::Bishop => bishop_moves(self, board),
-            PieceNames::Queen => queen_moves(self, board),
+            PieceNames::Pawn => pawn_attacks(self),
+            PieceNames::Knight => knight_attacks(self),
+            PieceNames::King => king_attacks(self),
+            PieceNames::Rook => rook_attacks(self, board),
+            PieceNames::Bishop => bishop_attacks(self, board),
+            PieceNames::Queen => queen_attacks(self, board),
         }
     }
 

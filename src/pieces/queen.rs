@@ -1,5 +1,5 @@
 use super::piece::Piece;
-use super::util::directional_move;
+use super::util::{directional_attacks, directional_moves};
 use crate::board::Board;
 use crate::util::Loc;
 
@@ -15,5 +15,20 @@ pub fn queen_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
         (-1, -1),
     ];
 
-    directional_move(piece, board, &directions)
+    directional_moves(piece, board, &directions)
+}
+
+pub fn queen_attacks(piece: &Piece, board: &Board) -> Vec<Loc> {
+    let directions = [
+        (0, -1),
+        (0, 1),
+        (1, 0),
+        (-1, 0),
+        (1, 1),
+        (1, -1),
+        (-1, 1),
+        (-1, -1),
+    ];
+
+    directional_attacks(piece, board, &directions)
 }

@@ -1,5 +1,5 @@
 use super::piece::Piece;
-use super::util::{add, valid_pos};
+use super::util::{add, add_ff, valid_pos};
 use crate::board::{Board, ChessColor};
 use crate::util::Loc;
 
@@ -71,6 +71,24 @@ pub fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
                 );
             }
         }
+    }
+
+    moves
+}
+
+pub fn pawn_attacks(piece: &Piece) -> Vec<Loc> {
+    let mut moves = vec![];
+    let direction = if piece.color == ChessColor::White {
+        -1
+    } else {
+        1
+    };
+
+    for pos in [
+        piece.pos.copy_move_i32(1, direction),
+        piece.pos.copy_move_i32(-1, direction),
+    ] {
+        add_ff(pos, &mut moves)
     }
 
     moves

@@ -5,14 +5,14 @@ use macroquad::prelude::{
 };
 
 use crate::board::Board;
-use crate::conf::{DEFAULT_FEN, MARGIN, SQUARE_SIZE};
+use crate::conf::{TEST_FEN, MARGIN, SQUARE_SIZE};
 use crate::loc;
 use crate::pieces::piece::Piece;
 use crate::util::Loc;
 
 #[derive(new)]
 pub struct Game {
-    #[new(value = "Board::from_fen(DEFAULT_FEN)")]
+    #[new(value = "Board::from_fen(TEST_FEN)")]
     pub board: Board,
 
     #[new(value = "vec![]")]

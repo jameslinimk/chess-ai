@@ -12,4 +12,4 @@ pub const COLOR_BACKGROUND: Color = color_u8!(0, 0, 0, 255);
 pub const COLOR_SELECTED: Color = color_u8!(0, 0, 0, 128);
 
 pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
-pub const TEST_FEN: &str = "rkbqkbkr/pppp4/8/5pP1/3Pp1P1/2KQP2N/PPPBB2P/R3K2R";
+pub const TEST_FEN: &str = "8/8/5k2/5p2/8/8/Q7/3P3N";

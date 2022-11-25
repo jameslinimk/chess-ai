@@ -5,7 +5,6 @@ use maplit::hashset;
 
 use crate::loc;
 use crate::pieces::piece::{Piece, PieceNames};
-use crate::pieces::util::valid_pos;
 use crate::util::Loc;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -88,25 +87,7 @@ impl Board {
         for row in self.raw.iter() {
             for piece in row.iter().flatten() {
                 if piece.color == color {
-                    match piece.name {
-                        PieceNames::Pawn => {
-                            let direction = if piece.color == ChessColor::White {
-                                -1
-                            } else {
-                                1
-                            };
-
-                            for pos in [
-                                piece.pos.copy_move_i32(1, direction),
-                                piece.pos.copy_move_i32(-1, direction),
-                            ] {
-                                if valid_pos(&pos) {
-                                    attacks.insert(pos);
-                                }
-                            }
-                        }
-                        _ => attacks.extend(piece.get_raw_moves(self)),
-                    }
+                    attacks.extend(piece.get_attacks(self));
                 }
             }
         }
