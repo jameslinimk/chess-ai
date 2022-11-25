@@ -4,15 +4,15 @@
 		{
 			"type": "lldb",
 			"request": "launch",
-			"name": "Debug executable 'rust-game'",
+			"name": "Debug executable 'chess-ai'",
 			"cargo": {
 				"args": [
 					"build",
-					"--bin=rust-game",
-					"--package=rust-game"
+					"--bin=chess-ai",
+					"--package=chess-ai"
 				],
 				"filter": {
-					"name": "rust-game",
+					"name": "chess-ai",
 					"kind": "bin"
 				}
 			},
@@ -22,16 +22,16 @@
 		{
 			"type": "lldb",
 			"request": "launch",
-			"name": "Debug unit tests in executable 'rust-game'",
+			"name": "Debug unit tests in executable 'chess-ai'",
 			"cargo": {
 				"args": [
 					"test",
 					"--no-run",
-					"--bin=rust-game",
-					"--package=rust-game"
+					"--bin=chess-ai",
+					"--package=chess-ai"
 				],
 				"filter": {
-					"name": "rust-game",
+					"name": "chess-ai",
 					"kind": "bin"
 				}
 			},

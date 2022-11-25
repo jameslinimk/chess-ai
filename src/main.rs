@@ -1,14 +1,17 @@
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code)]
 
 use assets::load_image_owned;
 use board::Board;
-use conf::{COLOR_BACKGROUND, HEIGHT, WIDTH};
+use conf::{COLOR_BACKGROUND, HEIGHT, TEST_FEN, WIDTH};
+use game::Game;
 use macroquad::prelude::{next_frame, Conf};
 use macroquad::window::clear_background;
 
 mod assets;
 mod board;
+mod board_extras;
 mod conf;
+mod game;
 mod pieces;
 mod util;
 
@@ -31,10 +34,10 @@ async fn main() {
         }
     }
 
-    let board = Board::new();
+    let mut game = Game::new();
     loop {
         clear_background(COLOR_BACKGROUND);
-        board.draw();
+        game.update();
         next_frame().await;
     }
 }
