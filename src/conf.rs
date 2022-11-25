@@ -1,15 +1,5 @@
-use std::collections::HashMap;
-
-use lazy_static::lazy_static;
 use macroquad::color_u8;
 use macroquad::prelude::Color;
-use macroquad::texture::Texture2D;
-use maplit::hashmap;
-
-use crate::assets::get_image;
-use crate::board::ChessColor;
-use crate::pieces::piece::{Piece, PieceNames};
-use crate::util::validate_fen;
 
 pub const SQUARE_SIZE: f32 = 64.0;
 pub const MARGIN: f32 = 16.0;

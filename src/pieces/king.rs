@@ -1,5 +1,5 @@
 use super::piece::Piece;
-use super::util::{add, static_move};
+use super::util::static_move;
 use crate::board::{Board, ChessColor};
 use crate::util::Loc;
 

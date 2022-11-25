@@ -1,17 +1,12 @@
 use std::collections::HashSet;
-use std::mem::swap;
 
 use derive_new::new;
-use macroquad::prelude::{BLACK, WHITE};
-use macroquad::shapes::{draw_circle, draw_rectangle};
-use macroquad::texture::draw_texture;
 use maplit::hashset;
 
-use crate::conf::{COLOR_BLACK, COLOR_SELECTED, COLOR_WHITE, MARGIN, SQUARE_SIZE};
+use crate::loc;
 use crate::pieces::piece::{Piece, PieceNames};
-use crate::pieces::util::{add, valid_pos};
-use crate::util::{validate_fen, Loc};
-use crate::{board_extras, loc};
+use crate::pieces::util::valid_pos;
+use crate::util::Loc;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum ChessColor {

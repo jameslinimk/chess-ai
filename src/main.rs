@@ -1,8 +1,7 @@
 #![allow(dead_code)]
 
 use assets::load_image_owned;
-use board::Board;
-use conf::{COLOR_BACKGROUND, HEIGHT, TEST_FEN, WIDTH};
+use conf::{COLOR_BACKGROUND, HEIGHT, WIDTH};
 use game::Game;
 use macroquad::prelude::{next_frame, Conf};
 use macroquad::window::clear_background;

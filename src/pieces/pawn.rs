@@ -1,4 +1,4 @@
-use super::piece::{Piece, PieceNames};
+use super::piece::Piece;
 use super::util::{add, valid_pos};
 use crate::board::{Board, ChessColor};
 use crate::util::Loc;

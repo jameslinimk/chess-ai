@@ -1,14 +1,11 @@
-use std::borrow::Borrow;
-use std::mem::{replace, swap};
-
 use cli_clipboard::set_contents;
 use derive_new::new;
 use macroquad::prelude::{
     is_key_pressed, is_mouse_button_pressed, mouse_position, KeyCode, MouseButton,
 };
 
-use crate::board::{Board, ChessColor};
-use crate::conf::{MARGIN, SQUARE_SIZE, DEFAULT_FEN};
+use crate::board::Board;
+use crate::conf::{DEFAULT_FEN, MARGIN, SQUARE_SIZE};
 use crate::loc;
 use crate::pieces::piece::Piece;
 use crate::util::Loc;

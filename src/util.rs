@@ -1,5 +1,3 @@
-use derive_new::new;
-
 pub fn validate_fen(fen: &str) -> bool {
     let rows = fen.split('/');
     let mut rows_len = 0;

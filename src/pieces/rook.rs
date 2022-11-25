@@ -1,5 +1,5 @@
 use super::piece::Piece;
-use super::util::{directional_move, valid_pos};
+use super::util::directional_move;
 use crate::board::Board;
 use crate::util::Loc;
 
