@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use derive_new::new;
 use maplit::hashset;
 
+use crate::conf::CASTLE_VALUE;
 use crate::loc;
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::Loc;
@@ -11,6 +12,16 @@ use crate::util::Loc;
 pub enum ChessColor {
     Black,
     White,
+}
+
+#[derive(Clone)]
+pub enum BoardState {
+    Normal,
+    /// Attached color is who is in check
+    Check(ChessColor),
+    /// Attached color is who is in checkmate
+    Checkmate(ChessColor),
+    Stalemate,
 }
 
 /// Represents a chess board and metadata
@@ -23,6 +34,10 @@ pub struct Board {
     /// Turn of the board
     #[new(value = "ChessColor::White")]
     pub turn: ChessColor,
+
+    /// State of the board
+    #[new(value = "BoardState::Normal")]
+    pub state: BoardState,
 
     /// Player color
     #[new(value = "ChessColor::White")]
@@ -59,6 +74,18 @@ pub struct Board {
     /// Which squares are under attack by black pieces
     #[new(value = "hashset! {}")]
     pub attack_black: HashSet<Loc>,
+
+    /// Wether the white king is in check
+    #[new(value = "false")]
+    pub check_white: bool,
+
+    /// Wether the black king is in check
+    #[new(value = "false")]
+    pub check_black: bool,
+
+    /// Pieces that block attackers
+    #[new(value = "hashset! {}")]
+    pub blockers: HashSet<Loc>,
 }
 impl Board {
     /// Moves the piece in `from` to `to`
@@ -73,16 +100,64 @@ impl Board {
             ChessColor::White => ChessColor::Black,
         };
 
+        // Update attacks
+        self.attack_white = self.get_attacks(ChessColor::White);
+        self.attack_black = self.get_attacks(ChessColor::Black);
+
         // Set score
         self.score_white = self.get_score(ChessColor::White);
         self.score_black = self.get_score(ChessColor::Black);
 
-        // Update attacks
-        self.attack_white = self.get_attacks(ChessColor::White);
-        self.attack_black = self.get_attacks(ChessColor::Black);
+        // Update check
+        let (white_king, black_king) = self.get_kings();
+        self.check_white = self.attack_black.contains(&white_king);
+        self.check_black = self.attack_white.contains(&black_king);
+
+        // Update blockers
+        self.update_blockers();
     }
 
-    pub fn get_attacks(&self, color: ChessColor) -> HashSet<Loc> {
+    /// Detect wether the players are in check, checkmate or stalemate
+    fn detect_state(&self) {
+        todo!()
+    }
+
+    fn get_kings(&self) -> (Loc, Loc) {
+        let mut white_king = None;
+        let mut black_king = None;
+        for row in self.raw.iter() {
+            for piece in row.iter().flatten() {
+                if piece.name == PieceNames::King {
+                    if piece.color == ChessColor::White {
+                        white_king = Some(piece.pos);
+                    } else {
+                        black_king = Some(piece.pos);
+                    }
+                }
+            }
+        }
+        (white_king.unwrap(), black_king.unwrap())
+    }
+
+    fn update_blockers(&mut self) {
+        self.blockers = hashset! {};
+        for loc in self.attack_white.iter() {
+            if let Some(piece) = self.get(loc) {
+                if piece.color == ChessColor::Black {
+                    self.blockers.insert(*loc);
+                }
+            }
+        }
+        for loc in self.attack_black.iter() {
+            if let Some(piece) = self.get(loc) {
+                if piece.color == ChessColor::White {
+                    self.blockers.insert(*loc);
+                }
+            }
+        }
+    }
+
+    pub fn get_attacks(&mut self, color: ChessColor) -> HashSet<Loc> {
         let mut attacks = hashset! {};
         for row in self.raw.iter() {
             for piece in row.iter().flatten() {
@@ -170,15 +245,31 @@ impl Board {
     fn get_score(&self, color: ChessColor) -> i32 {
         let mut score = 0;
 
+        // Add value based on pieces
         for row in self.raw.iter() {
             for piece in row.iter().flatten() {
                 if piece.color == color {
                     score += piece.get_value();
-                } else {
-                    score -= piece.get_value();
                 }
             }
         }
+
+        let (castle, attacks) = if color == ChessColor::White {
+            (self.castle_white, &self.attack_white)
+        } else {
+            (self.castle_black, &self.attack_black)
+        };
+
+        // Add value based on castling
+        if castle.0 {
+            score += CASTLE_VALUE;
+        }
+        if castle.1 {
+            score += CASTLE_VALUE;
+        }
+
+        // Add value based on attacks
+        score += attacks.len() as i32;
 
         score
     }

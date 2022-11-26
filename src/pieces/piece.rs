@@ -9,6 +9,7 @@ use super::queen::{queen_attacks, queen_moves};
 use super::rook::{rook_attacks, rook_moves};
 use crate::assets::get_image;
 use crate::board::{Board, ChessColor};
+use crate::conf::PIECE_VALUES;
 use crate::util::Loc;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -39,9 +40,7 @@ impl Piece {
             return vec![];
         }
 
-        // TODO work on anti-check thingy
-
-        match self.name {
+        let mut temp_moves = match self.name {
             PieceNames::Pawn => pawn_moves(self, board),
             PieceNames::Knight => knight_moves(self, board),
             PieceNames::King => {
@@ -59,7 +58,22 @@ impl Piece {
             PieceNames::Rook => rook_moves(self, board),
             PieceNames::Bishop => bishop_moves(self, board),
             PieceNames::Queen => queen_moves(self, board),
+        };
+
+        if board.blockers.contains(&self.pos) {
+            let new_board = board.clone();
+            temp_moves.retain(|&to| {
+                let mut new_board = new_board.clone();
+                new_board.move_piece(&self.pos, &to);
+                if self.color == ChessColor::White {
+                    !new_board.check_white
+                } else {
+                    !new_board.check_black
+                }
+            });
         }
+
+        temp_moves
     }
 
     /// Get squares that are attacked by this piece
@@ -99,13 +113,6 @@ impl Piece {
 
     /// Get the piece value
     pub fn get_value(&self) -> i32 {
-        match self.name {
-            PieceNames::Pawn => 1,
-            PieceNames::Knight => 3,
-            PieceNames::Bishop => 3,
-            PieceNames::Rook => 5,
-            PieceNames::Queen => 9,
-            PieceNames::King => 100,
-        }
+        *PIECE_VALUES.get(&self.name).unwrap()
     }
 }

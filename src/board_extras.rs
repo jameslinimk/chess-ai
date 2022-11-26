@@ -199,6 +199,8 @@ impl Board {
             }
             println!();
         }
+
+        println!("self.blockers: {:?}", self.blockers);
     }
 
     /* ----------------------------- Util functions ----------------------------- */
@@ -216,5 +218,19 @@ impl Board {
 
     pub fn set(&mut self, loc: &Loc, value: Option<Piece>) {
         self.raw[loc.y][loc.x] = value;
+    }
+
+    pub fn get_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
+        let mut moves = vec![];
+        for row in self.raw.iter() {
+            for piece in row.iter().flatten() {
+                if piece.color == color {
+                    for m in piece.get_moves(self) {
+                        moves.push((piece.pos, m));
+                    }
+                }
+            }
+        }
+        moves
     }
 }

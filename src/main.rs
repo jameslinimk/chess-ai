@@ -6,6 +6,7 @@ use game::Game;
 use macroquad::prelude::{next_frame, Conf};
 use macroquad::window::clear_background;
 
+mod agent;
 mod assets;
 mod board;
 mod board_extras;
