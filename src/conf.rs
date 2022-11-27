@@ -23,6 +23,7 @@ pub const TEST_FEN: &str = "k7/4q3/8/8/4R3/8/4K3/7P";
 pub const CASTLE_VALUE: i32 = 5;
 pub const CHECK_VALUE: i32 = 50;
 pub const CHECKMATE_VALUE: i32 = 100;
+pub const STALEMATE_VALUE: i32 = 0;
 
 lazy_static! {
     pub static ref PIECE_VALUES: HashMap<PieceNames, i32> = hashmap! {

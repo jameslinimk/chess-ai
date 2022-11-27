@@ -1,3 +1,5 @@
+use std::process::exit;
+
 use cli_clipboard::set_contents;
 use derive_new::new;
 use macroquad::prelude::{
@@ -5,7 +7,7 @@ use macroquad::prelude::{
 };
 
 use crate::agent::random_agent;
-use crate::board::{Board, ChessColor};
+use crate::board::{Board, BoardState, ChessColor};
 use crate::conf::{MARGIN, SQUARE_SIZE, TEST_FEN};
 use crate::loc;
 use crate::pieces::piece::Piece;
@@ -88,28 +90,34 @@ impl Game {
     pub fn update(&mut self) {
         self.update_debug();
 
-        if self.board.player_turn() {
-            if let Some(clicked) = self.get_clicked_square() {
-                // Click same place
-                if self.selected.is_some() && self.selected.unwrap().pos == clicked {
-                    self.selected = None;
-                    self.highlight = vec![];
-                // Move (Clicked highlighted piece)
-                } else if self.highlight.contains(&clicked) {
-                    self.move_piece(&self.selected.unwrap().pos, &clicked);
-                    // Clicked a new place
-                } else if let Some(piece) = self.board.get(&clicked) {
-                    self.selected = Some(piece);
-                    self.highlight = self.selected.unwrap().get_moves(&self.board);
+        if self.board.state == BoardState::Normal {
+            if self.board.player_turn() {
+                if let Some(clicked) = self.get_clicked_square() {
+                    // Click same place
+                    if self.selected.is_some() && self.selected.unwrap().pos == clicked {
+                        self.selected = None;
+                        self.highlight = vec![];
+                    // Move (Clicked highlighted piece)
+                    } else if self.highlight.contains(&clicked) {
+                        self.move_piece(&self.selected.unwrap().pos, &clicked);
+                        // Clicked a new place
+                    } else if let Some(piece) = self.board.get(&clicked) {
+                        self.selected = Some(piece);
+                        self.highlight = self.selected.unwrap().get_moves(&self.board);
+                    }
+                }
+            } else {
+                let m = random_agent(&self.board);
+                if let Some(m) = m {
+                    self.move_piece(&m.0, &m.1);
+                } else {
+                    println!("No moves left!");
+                    exit(0);
                 }
             }
         } else {
-            let m = random_agent(&self.board);
-            if let Some(m) = m {
-                self.move_piece(&m.0, &m.1);
-            } else {
-                println!("No moves left!");
-            }
+            println!("Game over {:?}", self.board.state);
+            exit(0);
         }
 
         // Drawing

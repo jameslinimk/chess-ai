@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use derive_new::new;
 use maplit::hashset;
 
-use crate::conf::CASTLE_VALUE;
+use crate::conf::{CASTLE_VALUE, CHECKMATE_VALUE, CHECK_VALUE, STALEMATE_VALUE};
 use crate::loc;
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::Loc;
@@ -13,8 +13,17 @@ pub enum ChessColor {
     Black,
     White,
 }
+impl ChessColor {
+    /// Returns the opposite color
+    pub fn other(&self) -> ChessColor {
+        match self {
+            ChessColor::Black => ChessColor::White,
+            ChessColor::White => ChessColor::Black,
+        }
+    }
+}
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum BoardState {
     Normal,
     /// Attached color is who is in check
@@ -86,40 +95,85 @@ pub struct Board {
     /// Pieces that block attackers
     #[new(value = "hashset! {}")]
     pub blockers: HashSet<Loc>,
+
+    /// Available moves for white
+    #[new(value = "vec![]")]
+    pub moves_white: Vec<(Loc, Loc)>,
+
+    /// Available moves for black
+    #[new(value = "vec![]")]
+    pub moves_black: Vec<(Loc, Loc)>,
 }
 impl Board {
     /// Moves the piece in `from` to `to`
     pub fn move_piece(&mut self, from: &Loc, to: &Loc) {
-        // Moving piece
+        // Moving piece (relies on nothing)
         self.move_actions(from, to);
         self.move_raw(from, to);
 
-        // Update turn
+        // Update turn (relies on nothing)
         self.turn = match self.turn {
             ChessColor::Black => ChessColor::White,
             ChessColor::White => ChessColor::Black,
         };
 
-        // Update attacks
+        // Update attacks (relies on nothing)
         self.attack_white = self.get_attacks(ChessColor::White);
         self.attack_black = self.get_attacks(ChessColor::Black);
 
-        // Set score
-        self.score_white = self.get_score(ChessColor::White);
-        self.score_black = self.get_score(ChessColor::Black);
-
-        // Update check
+        // Update check (relies on attacks)
         let (white_king, black_king) = self.get_kings();
         self.check_white = self.attack_black.contains(&white_king);
         self.check_black = self.attack_white.contains(&black_king);
 
-        // Update blockers
+        // Update blockers (relies on attacks)
         self.update_blockers();
+
+        // Update moves (relies on attacks and blockers)
+        // FIXME Calls itself, find solution
+        self.moves_white = self.get_moves(ChessColor::White);
+        self.moves_black = self.get_moves(ChessColor::Black);
+
+        // Detect state (relies on check and moves)
+        self.detect_state();
+
+        // Set score (relies on state)
+        self.score_white = self.get_score(ChessColor::White);
+        self.score_black = self.get_score(ChessColor::Black);
     }
 
     /// Detect wether the players are in check, checkmate or stalemate
-    fn detect_state(&self) {
-        todo!()
+    fn detect_state(&mut self) {
+        self.state = match (self.check_white, self.check_black) {
+            (true, true) => panic!("Both kings are in check!"),
+            (true, false) => {
+                if self.moves_white.is_empty() {
+                    BoardState::Checkmate(ChessColor::White)
+                } else {
+                    BoardState::Check(ChessColor::White)
+                }
+            }
+            (false, true) => {
+                if self.moves_black.is_empty() {
+                    BoardState::Checkmate(ChessColor::Black)
+                } else {
+                    BoardState::Check(ChessColor::Black)
+                }
+            }
+            (false, false) => {
+                let moves = if self.turn == ChessColor::White {
+                    &self.moves_white
+                } else {
+                    &self.moves_black
+                };
+
+                if moves.is_empty() {
+                    BoardState::Stalemate
+                } else {
+                    BoardState::Normal
+                }
+            }
+        };
     }
 
     fn get_kings(&self) -> (Loc, Loc) {
@@ -243,6 +297,25 @@ impl Board {
 
     /// Calculates the score of the board, for the color specified
     fn get_score(&self, color: ChessColor) -> i32 {
+        match self.state {
+            BoardState::Checkmate(check_color) => {
+                if check_color == color {
+                    return -CHECKMATE_VALUE;
+                } else {
+                    return CHECKMATE_VALUE;
+                }
+            }
+            BoardState::Check(check_color) => {
+                if check_color == color {
+                    return -CHECK_VALUE;
+                } else {
+                    return CHECK_VALUE;
+                }
+            }
+            BoardState::Stalemate => return STALEMATE_VALUE,
+            _ => {}
+        }
+
         let mut score = 0;
 
         // Add value based on pieces

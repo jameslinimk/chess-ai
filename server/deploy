@@ -1,0 +1,24 @@
+#!/bin/bash
+
+TMUX_NAME="chess_server"
+
+# Going to directory of project
+cd "$(dirname "$0")" || exit
+cd ../
+
+# Update git
+git pull
+
+# Build project
+rustup target add wasm32-unknown-unknown
+cargo build --target wasm32-unknown-unknown --release
+
+# Build server
+cd server || exit
+pnpm i
+
+# Serve
+tmux kill-session -t $TMUX_NAME
+tmux new -d -s $TMUX_NAME "pnpm run serve"
+
+echo "Finished"
