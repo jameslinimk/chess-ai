@@ -1,11 +1,11 @@
 use macroquad::prelude::{color_u8, Color};
 
 // Config for screen
-pub const BUTTON_HEIGHT: f32 = 50.0;
+pub const EXTRA_WIDTH: f32 = 200.0;
 pub const SQUARE_SIZE: f32 = 64.0;
 pub const MARGIN: f32 = 16.0;
-pub const WIDTH: i32 = SQUARE_SIZE as i32 * 8 + MARGIN as i32 * 2;
-pub const HEIGHT: i32 = SQUARE_SIZE as i32 * 8 + MARGIN as i32 * 3 + BUTTON_HEIGHT as i32 * 2;
+pub const WIDTH: i32 = SQUARE_SIZE as i32 * 8 + MARGIN as i32 * 3 + EXTRA_WIDTH as i32;
+pub const HEIGHT: i32 = SQUARE_SIZE as i32 * 8 + MARGIN as i32 * 2;
 
 // Colors
 pub const COLOR_WHITE: Color = color_u8!(238, 238, 210, 255);

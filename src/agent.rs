@@ -12,7 +12,7 @@ pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
     moves.choose().copied()
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Agent {
     Random,
     Minimax,

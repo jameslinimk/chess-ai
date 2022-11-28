@@ -11,7 +11,7 @@ use macroquad::text::{draw_text_ex, measure_text, TextParams};
 use crate::agent::{Agent, AGENTS};
 use crate::board::{Board, BoardState, ChessColor};
 use crate::conf::{
-    BUTTON_HEIGHT, COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, MARGIN, SQUARE_SIZE,
+    COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, EXTRA_WIDTH, MARGIN, SQUARE_SIZE,
     TEST_FEN,
 };
 use crate::pieces::piece::Piece;
@@ -31,6 +31,7 @@ pub struct Button {
     pressed: bool,
 }
 impl Button {
+    // FIXME clicking doesn't work
     pub fn update(&mut self) -> bool {
         self.hover = touches(mouse_position(), (self.x, self.y, self.w, self.h));
         if self.hover {
@@ -49,7 +50,6 @@ impl Button {
         false
     }
 
-    // FIXME
     pub fn draw(&self) {
         let color = match (self.hover, self.pressed) {
             (true, true) => COLOR_BUTTON_PRESSED,
@@ -60,22 +60,27 @@ impl Button {
         draw_rectangle(self.x, self.y, self.w, self.h, color);
 
         let params = TextParams {
-            font_size: 20,
+            font_size: 30,
             font_scale: 1.0,
             color: BLACK,
             font: get_font(),
             ..Default::default()
         };
 
-        let width = measure_text(
+        let dims = measure_text(
             self.text,
             Some(params.font),
             params.font_size,
             params.font_scale,
-        )
-        .width;
+        );
 
-        draw_text_ex(self.text, self.x + width / 2.0, self.y, params);
+        // Draw centered text
+        draw_text_ex(
+            self.text,
+            self.x + self.w / 2.0 - dims.width / 2.0,
+            self.y + self.h / 2.0 + dims.height / 2.0,
+            params,
+        );
     }
 }
 
@@ -104,15 +109,13 @@ pub struct Game {
     #[new(value = "{
         let mut temp = vec![];
 
-        let button_width = 8.0 * SQUARE_SIZE;
-
         for (i, (key, value)) in AGENTS.iter().enumerate() {
             temp.push((
                 Button::new(
-                    MARGIN,
-                    button_width + MARGIN + BUTTON_HEIGHT * i as f32,
-                    button_width,
-                    BUTTON_HEIGHT,
+                    SQUARE_SIZE * 8.0 + MARGIN * 2.0,
+                    MARGIN * (i as f32 + 1.0) + 50.0 * i as f32,
+                    EXTRA_WIDTH,
+                    50.0,
                     key,
                 ),
                 *value,
@@ -173,6 +176,7 @@ impl Game {
         for (button, agent) in self.agent_buttons.iter_mut() {
             if button.update() {
                 self.agent = *agent;
+                println!("Agent set to {:?}", agent);
             }
             button.draw();
         }
