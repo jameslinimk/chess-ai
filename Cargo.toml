@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cli-clipboard = "0.3.0"
 derive-new = "0.5.9"
 lazy_static = "1.4.0"
 macroquad = "0.3.25"

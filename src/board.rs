@@ -106,7 +106,7 @@ pub struct Board {
 }
 impl Board {
     /// Moves the piece in `from` to `to`
-    pub fn move_piece(&mut self, from: &Loc, to: &Loc) {
+    pub fn move_piece(&mut self, from: &Loc, to: &Loc, check_stale: bool) {
         // Moving piece (relies on nothing)
         self.move_actions(from, to);
         self.move_raw(from, to);
@@ -130,12 +130,13 @@ impl Board {
         self.update_blockers();
 
         // Update moves (relies on attacks and blockers)
-        // FIXME Calls itself, find solution
-        self.moves_white = self.get_moves(ChessColor::White);
-        self.moves_black = self.get_moves(ChessColor::Black);
+        if check_stale {
+            self.moves_white = self.get_moves(ChessColor::White);
+            self.moves_black = self.get_moves(ChessColor::Black);
+        }
 
         // Detect state (relies on check and moves)
-        self.detect_state();
+        self.detect_state(check_stale);
 
         // Set score (relies on state)
         self.score_white = self.get_score(ChessColor::White);
@@ -143,7 +144,7 @@ impl Board {
     }
 
     /// Detect wether the players are in check, checkmate or stalemate
-    fn detect_state(&mut self) {
+    fn detect_state(&mut self, check_stale: bool) {
         self.state = match (self.check_white, self.check_black) {
             (true, true) => panic!("Both kings are in check!"),
             (true, false) => {
@@ -161,6 +162,10 @@ impl Board {
                 }
             }
             (false, false) => {
+                if !check_stale {
+                    return;
+                }
+
                 let moves = if self.turn == ChessColor::White {
                     &self.moves_white
                 } else {
@@ -176,6 +181,7 @@ impl Board {
         };
     }
 
+    /// Returns a tuple of the locations of the kings (white, black)
     fn get_kings(&self) -> (Loc, Loc) {
         let mut white_king = None;
         let mut black_king = None;

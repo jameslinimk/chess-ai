@@ -100,3 +100,10 @@ impl Loc {
         format!("{}{}", x, y)
     }
 }
+
+pub fn touches(point: (f32, f32), rect: (f32, f32, f32, f32)) -> bool {
+    point.0 >= rect.0
+        && point.0 <= rect.0 + rect.2
+        && point.1 >= rect.1
+        && point.1 <= rect.1 + rect.3
+}
