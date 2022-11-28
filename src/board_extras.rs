@@ -60,7 +60,7 @@ impl Board {
                 'k' => PieceNames::King,
                 _ => panic!("Invalid FEN"),
             };
-            board.raw[y][x] = Some(Piece::new(name, color, loc!(x, y)));
+            board.set(&loc!(x, y), Some(Piece::new(name, color, loc!(x, y))));
             x += 1;
         }
 

@@ -70,11 +70,7 @@ pub struct Board {
 
     /// Current score of board, for white
     #[new(value = "0")]
-    pub score_white: i32,
-
-    /// Current score of board, for black
-    #[new(value = "0")]
-    pub score_black: i32,
+    pub score: i32,
 
     /// Which squares are under attack by white pieces
     #[new(value = "hashset! {}")]
@@ -144,16 +140,14 @@ impl Board {
         self.detect_state(check_stale);
 
         // Set score (relies on state)
-        self.score_white = self.get_score(ChessColor::White);
-        self.score_black = self.get_score(ChessColor::Black);
+        self.score = self.get_score();
     }
 
     /// Detect wether the players are in check, checkmate or stalemate
     fn detect_state(&mut self, check_stale: bool) {
         self.state = match (self.check_white, self.check_black) {
             (true, true) => {
-                println!("self: {:#?}", self);
-                panic!("Both kings are in check!")
+                panic!("Both kings are in check!");
             }
             (true, false) => {
                 if self.moves_white.is_empty() {
@@ -294,7 +288,7 @@ impl Board {
                     if from.x.abs_diff(to.x) == 1 {
                         if let Some((loc, color)) = self.en_passent {
                             if to.x == loc.x && to.y.abs_diff(loc.y) == 1 && piece.color != color {
-                                self.raw[loc.y][loc.x] = None;
+                                self.set(&loc, None);
                             }
                         }
                     }
@@ -310,17 +304,17 @@ impl Board {
     }
 
     /// Calculates the score of the board, for the color specified
-    fn get_score(&self, color: ChessColor) -> i32 {
+    fn get_score(&self) -> i32 {
         match self.state {
             BoardState::Checkmate(check_color) => {
-                if check_color == color {
+                if check_color == ChessColor::White {
                     return -CHECKMATE_VALUE;
                 } else {
                     return CHECKMATE_VALUE;
                 }
             }
             BoardState::Check(check_color) => {
-                if check_color == color {
+                if check_color == ChessColor::White {
                     return -CHECK_VALUE;
                 } else {
                     return CHECK_VALUE;
@@ -335,28 +329,31 @@ impl Board {
         // Add value based on pieces
         for row in self.raw.iter() {
             for piece in row.iter().flatten() {
-                if piece.color == color {
+                if piece.color == ChessColor::White {
                     score += piece.get_value();
+                } else {
+                    score -= piece.get_value();
                 }
             }
         }
 
-        let (castle, attacks) = if color == ChessColor::White {
-            (self.castle_white, &self.attack_white)
-        } else {
-            (self.castle_black, &self.attack_black)
-        };
+        for (castle, attacks, color) in &[
+            (self.castle_white, &self.attack_white, ChessColor::White),
+            (self.castle_black, &self.attack_black, ChessColor::Black),
+        ] {
+            let subtract = if color == &ChessColor::White { 1 } else { -1 };
 
-        // Add value based on castling
-        if castle.0 {
-            score += CASTLE_VALUE;
-        }
-        if castle.1 {
-            score += CASTLE_VALUE;
-        }
+            // Add value based on castling
+            if castle.0 {
+                score += CASTLE_VALUE * subtract;
+            }
+            if castle.1 {
+                score += CASTLE_VALUE * subtract;
+            }
 
-        // Add value based on attacks
-        score += attacks.len() as i32;
+            // Add value based on attacks
+            score += attacks.len() as i32 * subtract;
+        }
 
         score
     }

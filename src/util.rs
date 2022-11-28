@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+use std::fmt::{Debug, Formatter, Result};
+
 use macroquad::text::{draw_text_ex, measure_text, TextParams};
 
 pub fn validate_fen(fen: &str) -> bool {
@@ -44,10 +47,15 @@ macro_rules! clamp_negative {
     };
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Loc {
     pub x: usize,
     pub y: usize,
+}
+impl Debug for Loc {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
 }
 impl Loc {
     pub fn move_usize(&self, x_diff: usize, y_diff: usize) -> Loc {
@@ -114,5 +122,18 @@ pub fn multiline_text_ex(text: &str, x: f32, y: f32, params: TextParams) {
     let height = measure_text(text, Some(params.font), params.font_size, params.font_scale).height;
     for (i, line) in text.lines().enumerate() {
         draw_text_ex(line, x, y + height * (i as f32 + 1.0), params);
+    }
+}
+
+pub fn debug_print(highlights: &HashSet<Loc>) {
+    for y in 0..8 {
+        for x in 0..8 {
+            if highlights.contains(&loc!(x, y)) {
+                print!("x");
+            } else {
+                print!("-");
+            }
+        }
+        println!();
     }
 }

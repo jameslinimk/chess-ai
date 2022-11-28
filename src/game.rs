@@ -191,10 +191,7 @@ impl Game {
 
     fn draw_ui(&self) {
         multiline_text_ex(
-            &format!(
-                "Turn: {:?}\nWScore: {}\nBScore: {}",
-                self.board.turn, self.board.score_white, self.board.score_black
-            ),
+            &format!("Turn: {:?}\nWScore: {}", self.board.turn, self.board.score),
             SQUARE_SIZE * 8.0 + MARGIN * 2.0,
             MARGIN,
             TextParams {
