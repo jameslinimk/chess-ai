@@ -1,3 +1,5 @@
+use macroquad::text::{draw_text_ex, measure_text, TextParams};
+
 pub fn validate_fen(fen: &str) -> bool {
     let rows = fen.split('/');
     let mut rows_len = 0;
@@ -106,4 +108,11 @@ pub fn touches(point: (f32, f32), rect: (f32, f32, f32, f32)) -> bool {
         && point.0 <= rect.0 + rect.2
         && point.1 >= rect.1
         && point.1 <= rect.1 + rect.3
+}
+
+pub fn multiline_text_ex(text: &str, x: f32, y: f32, params: TextParams) {
+    let height = measure_text(text, Some(params.font), params.font_size, params.font_scale).height;
+    for (i, line) in text.lines().enumerate() {
+        draw_text_ex(line, x, y + height * (i as f32 + 1.0), params);
+    }
 }

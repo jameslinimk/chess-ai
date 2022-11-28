@@ -64,6 +64,7 @@ impl Board {
             x += 1;
         }
 
+        board.update_things(true);
         board
     }
 
@@ -145,52 +146,16 @@ impl Board {
 
     /// Prints board to console
     pub fn print(&self) {
-        // for row in self.raw.iter() {
-        //     for piece in row.iter() {
-        //         match piece {
-        //             Some(p) => {
-        //                 let first_char = format!("{:?}", p.name).chars().next().unwrap();
-        //                 print!(
-        //                     "{}",
-        //                     match p.color {
-        //                         ChessColor::White => first_char.to_uppercase().to_string(),
-        //                         ChessColor::Black => first_char.to_lowercase().to_string(),
-        //                     }
-        //                 )
-        //             }
-        //             None => print!("-"),
-        //         }
-        //     }
-        //     println!();
-        // }
-
-        for y in 0..8 {
-            for x in 0..8 {
-                let white = self.attack_white.contains(&loc!(x, y));
-                let black = self.attack_black.contains(&loc!(x, y));
-
-                if white && black {
-                    print!("o");
-                } else if white {
-                    print!("w");
-                } else if black {
-                    print!("b");
-                } else {
-                    print!("-");
-                }
-            }
-
-            print!(" ");
-
-            for piece in self.raw[y].iter() {
+        for row in self.raw.iter() {
+            for piece in row.iter() {
                 match piece {
                     Some(p) => {
-                        let char = name_to_fen(&p.name);
+                        let first_char = format!("{:?}", p.name).chars().next().unwrap();
                         print!(
                             "{}",
                             match p.color {
-                                ChessColor::White => char.to_uppercase().to_string(),
-                                ChessColor::Black => char.to_lowercase().to_string(),
+                                ChessColor::White => first_char.to_uppercase().to_string(),
+                                ChessColor::Black => first_char.to_lowercase().to_string(),
                             }
                         )
                     }
@@ -200,7 +165,43 @@ impl Board {
             println!();
         }
 
-        println!("self.blockers: {:?}", self.blockers);
+        // for y in 0..8 {
+        //     for x in 0..8 {
+        //         let white = self.attack_white.contains(&loc!(x, y));
+        //         let black = self.attack_black.contains(&loc!(x, y));
+
+        //         if white && black {
+        //             print!("o");
+        //         } else if white {
+        //             print!("w");
+        //         } else if black {
+        //             print!("b");
+        //         } else {
+        //             print!("-");
+        //         }
+        //     }
+
+        //     print!(" ");
+
+        //     for piece in self.raw[y].iter() {
+        //         match piece {
+        //             Some(p) => {
+        //                 let char = name_to_fen(&p.name);
+        //                 print!(
+        //                     "{}",
+        //                     match p.color {
+        //                         ChessColor::White => char.to_uppercase().to_string(),
+        //                         ChessColor::Black => char.to_lowercase().to_string(),
+        //                     }
+        //                 )
+        //             }
+        //             None => print!("-"),
+        //         }
+        //     }
+        //     println!();
+        // }
+
+        // println!("self.blockers: {:?}", self.blockers);
     }
 
     /* ----------------------------- Util functions ----------------------------- */

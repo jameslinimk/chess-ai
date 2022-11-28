@@ -2,44 +2,62 @@ use std::process::exit;
 
 use derive_new::new;
 use macroquad::prelude::{
-    is_key_pressed, is_mouse_button_down, is_mouse_button_pressed, mouse_position, KeyCode,
-    MouseButton, BLACK,
+    draw_rectangle, draw_text_ex, is_key_pressed, is_mouse_button_down, is_mouse_button_pressed,
+    measure_text, mouse_position, KeyCode, MouseButton, TextDimensions, TextParams,
 };
-use macroquad::shapes::draw_rectangle;
-use macroquad::text::{draw_text_ex, measure_text, TextParams};
 
 use crate::agent::{Agent, AGENTS};
 use crate::board::{Board, BoardState, ChessColor};
 use crate::conf::{
-    COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, EXTRA_WIDTH, MARGIN, SQUARE_SIZE,
-    TEST_FEN,
+    COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE, EXTRA_WIDTH, HEIGHT,
+    MARGIN, SQUARE_SIZE, TEST_FEN,
 };
 use crate::pieces::piece::Piece;
-use crate::util::{touches, Loc};
+use crate::util::{multiline_text_ex, touches, Loc};
 use crate::{get_font, loc};
 
-#[derive(new)]
 pub struct Button {
     x: f32,
     y: f32,
     w: f32,
     h: f32,
     text: &'static str,
-    #[new(value = "false")]
     hover: bool,
-    #[new(value = "false")]
     pressed: bool,
+    dims: TextDimensions,
+    params: TextParams,
 }
 impl Button {
+    pub fn new(x: f32, y: f32, w: f32, h: f32, text: &'static str) -> Button {
+        let params = TextParams {
+            font_size: 30,
+            font_scale: 1.0,
+            color: COLOR_WHITE,
+            font: get_font(),
+            ..Default::default()
+        };
+        Button {
+            x,
+            y,
+            w,
+            h,
+            text,
+            hover: false,
+            pressed: false,
+            params,
+            dims: measure_text(text, Some(params.font), params.font_size, params.font_scale),
+        }
+    }
+
     // FIXME clicking doesn't work
     pub fn update(&mut self) -> bool {
         self.hover = touches(mouse_position(), (self.x, self.y, self.w, self.h));
         if self.hover {
-            if is_mouse_button_down(MouseButton::Left) {
-                self.pressed = true;
-            } else if is_mouse_button_pressed(MouseButton::Left) {
+            if is_mouse_button_pressed(MouseButton::Left) {
                 self.pressed = true;
                 return true;
+            } else if is_mouse_button_down(MouseButton::Left) {
+                self.pressed = true;
             } else {
                 self.pressed = false;
             }
@@ -59,27 +77,12 @@ impl Button {
 
         draw_rectangle(self.x, self.y, self.w, self.h, color);
 
-        let params = TextParams {
-            font_size: 30,
-            font_scale: 1.0,
-            color: BLACK,
-            font: get_font(),
-            ..Default::default()
-        };
-
-        let dims = measure_text(
-            self.text,
-            Some(params.font),
-            params.font_size,
-            params.font_scale,
-        );
-
         // Draw centered text
         draw_text_ex(
             self.text,
-            self.x + self.w / 2.0 - dims.width / 2.0,
-            self.y + self.h / 2.0 + dims.height / 2.0,
-            params,
+            self.x + self.w / 2.0 - self.dims.width / 2.0,
+            self.y + self.h / 2.0 + self.dims.height / 2.0,
+            self.params,
         );
     }
 }
@@ -113,7 +116,7 @@ pub struct Game {
             temp.push((
                 Button::new(
                     SQUARE_SIZE * 8.0 + MARGIN * 2.0,
-                    MARGIN * (i as f32 + 1.0) + 50.0 * i as f32,
+                    HEIGHT as f32 - (50.0 + MARGIN) * (i as f32 + 1.0),
                     EXTRA_WIDTH,
                     50.0,
                     key,
@@ -167,6 +170,10 @@ impl Game {
             println!();
             self.board.print();
         }
+        if is_key_pressed(KeyCode::E) {
+            println!();
+            println!("self.board: {:#?}", self.board);
+        }
         if is_key_pressed(KeyCode::R) {
             self.reset();
         }
@@ -180,6 +187,24 @@ impl Game {
             }
             button.draw();
         }
+    }
+
+    fn draw_ui(&self) {
+        multiline_text_ex(
+            &format!(
+                "Turn: {:?}\nWScore: {}\nBScore: {}",
+                self.board.turn, self.board.score_white, self.board.score_black
+            ),
+            SQUARE_SIZE * 8.0 + MARGIN * 2.0,
+            MARGIN,
+            TextParams {
+                font_size: 30,
+                font_scale: 1.0,
+                color: COLOR_WHITE,
+                font: get_font(),
+                ..Default::default()
+            },
+        )
     }
 
     pub fn update(&mut self) {
@@ -218,5 +243,6 @@ impl Game {
 
         // Drawing
         self.board.draw(&self.highlight);
+        self.draw_ui();
     }
 }

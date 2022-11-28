@@ -34,7 +34,7 @@ pub enum BoardState {
 }
 
 /// Represents a chess board and metadata
-#[derive(Clone, new)]
+#[derive(Debug, Clone, new)]
 pub struct Board {
     /// Array with the raw 8x8 board data
     #[new(value = "[[None; 8]; 8]")]
@@ -117,6 +117,11 @@ impl Board {
             ChessColor::White => ChessColor::Black,
         };
 
+        // Update other metadata
+        self.update_things(check_stale);
+    }
+
+    pub fn update_things(&mut self, check_stale: bool) {
         // Update attacks (relies on nothing)
         self.attack_white = self.get_attacks(ChessColor::White);
         self.attack_black = self.get_attacks(ChessColor::Black);
@@ -146,7 +151,10 @@ impl Board {
     /// Detect wether the players are in check, checkmate or stalemate
     fn detect_state(&mut self, check_stale: bool) {
         self.state = match (self.check_white, self.check_black) {
-            (true, true) => panic!("Both kings are in check!"),
+            (true, true) => {
+                println!("self: {:#?}", self);
+                panic!("Both kings are in check!")
+            }
             (true, false) => {
                 if self.moves_white.is_empty() {
                     BoardState::Checkmate(ChessColor::White)
