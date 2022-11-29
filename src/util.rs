@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter, Result};
 
+use macroquad::rand::gen_range;
 use macroquad::text::{draw_text_ex, measure_text, TextParams};
 
 pub fn validate_fen(fen: &str) -> bool {
@@ -136,4 +137,20 @@ pub fn debug_print(highlights: &HashSet<Loc>) {
         }
         println!();
     }
+}
+
+pub fn choose_array<T>(arr: &[T]) -> &T {
+    let index = gen_range(0, arr.len());
+    &arr[index]
+}
+
+#[macro_export]
+macro_rules! color_ternary {
+    ($cond: expr, $if_white: expr, $if_black: expr) => {
+        if $cond == ChessColor::White {
+            $if_white
+        } else {
+            $if_black
+        }
+    };
 }

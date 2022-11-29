@@ -1,6 +1,7 @@
 use super::piece::Piece;
 use super::util::{add, add_ff, valid_pos};
 use crate::board::{Board, ChessColor};
+use crate::color_ternary;
 use crate::util::Loc;
 
 /// Adds to moves if the move is on the board and is empty
@@ -26,11 +27,7 @@ pub fn add_if_capture(board: &Board, color: &ChessColor, location: Loc, moves: &
 
 pub fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     let mut moves = vec![];
-    let direction = if piece.color == ChessColor::White {
-        -1
-    } else {
-        1
-    };
+    let direction = color_ternary!(piece.color, -1, 1);
 
     // Forward movement
     let blocked = add_if_empty(board, piece.pos.copy_move_i32(0, direction), &mut moves);
@@ -78,11 +75,7 @@ pub fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
 
 pub fn pawn_attacks(piece: &Piece) -> Vec<Loc> {
     let mut moves = vec![];
-    let direction = if piece.color == ChessColor::White {
-        -1
-    } else {
-        1
-    };
+    let direction = color_ternary!(piece.color, -1, 1);
 
     for pos in [
         piece.pos.copy_move_i32(1, direction),

@@ -4,9 +4,9 @@ use derive_new::new;
 use maplit::hashset;
 
 use crate::conf::{CASTLE_VALUE, CHECKMATE_VALUE, CHECK_VALUE, STALEMATE_VALUE};
-use crate::loc;
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::Loc;
+use crate::{color_ternary, loc};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum ChessColor {
@@ -99,6 +99,9 @@ pub struct Board {
     /// Available moves for black
     #[new(value = "vec![]")]
     pub moves_black: Vec<(Loc, Loc)>,
+
+    #[new(value = "0")]
+    pub move_count: u32,
 }
 impl Board {
     /// Moves the piece in `from` to `to`
@@ -112,6 +115,7 @@ impl Board {
             ChessColor::Black => ChessColor::White,
             ChessColor::White => ChessColor::Black,
         };
+        self.move_count += 1;
 
         // Update other metadata
         self.update_things(check_stale);
@@ -168,11 +172,7 @@ impl Board {
                     return;
                 }
 
-                let moves = if self.turn == ChessColor::White {
-                    &self.moves_white
-                } else {
-                    &self.moves_black
-                };
+                let moves = color_ternary!(self.turn, &self.moves_white, &self.moves_black);
 
                 if moves.is_empty() {
                     BoardState::Stalemate
@@ -190,11 +190,11 @@ impl Board {
         for row in self.raw.iter() {
             for piece in row.iter().flatten() {
                 if piece.name == PieceNames::King {
-                    if piece.color == ChessColor::White {
-                        white_king = Some(piece.pos);
-                    } else {
-                        black_king = Some(piece.pos);
-                    }
+                    color_ternary!(
+                        piece.color,
+                        white_king = Some(piece.pos),
+                        black_king = Some(piece.pos)
+                    );
                 }
             }
         }
@@ -307,18 +307,10 @@ impl Board {
     fn get_score(&self) -> i32 {
         match self.state {
             BoardState::Checkmate(check_color) => {
-                if check_color == ChessColor::White {
-                    return -CHECKMATE_VALUE;
-                } else {
-                    return CHECKMATE_VALUE;
-                }
+                return color_ternary!(check_color, -CHECKMATE_VALUE, CHECKMATE_VALUE);
             }
             BoardState::Check(check_color) => {
-                if check_color == ChessColor::White {
-                    return -CHECK_VALUE;
-                } else {
-                    return CHECK_VALUE;
-                }
+                return color_ternary!(check_color, -CHECK_VALUE, CHECK_VALUE);
             }
             BoardState::Stalemate => return STALEMATE_VALUE,
             _ => {}
@@ -329,11 +321,11 @@ impl Board {
         // Add value based on pieces
         for row in self.raw.iter() {
             for piece in row.iter().flatten() {
-                if piece.color == ChessColor::White {
-                    score += piece.get_value();
-                } else {
-                    score -= piece.get_value();
-                }
+                color_ternary!(
+                    piece.color,
+                    score += piece.get_value(),
+                    score -= piece.get_value()
+                );
             }
         }
 
@@ -341,7 +333,7 @@ impl Board {
             (self.castle_white, &self.attack_white, ChessColor::White),
             (self.castle_black, &self.attack_black, ChessColor::Black),
         ] {
-            let subtract = if color == &ChessColor::White { 1 } else { -1 };
+            let subtract = color_ternary!(*color, 1, -1);
 
             // Add value based on castling
             if castle.0 {

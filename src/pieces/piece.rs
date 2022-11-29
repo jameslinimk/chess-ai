@@ -9,6 +9,7 @@ use super::queen::{queen_attacks, queen_moves};
 use super::rook::{rook_attacks, rook_moves};
 use crate::assets::get_image;
 use crate::board::{Board, ChessColor};
+use crate::color_ternary;
 use crate::util::Loc;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -45,11 +46,8 @@ impl Piece {
             PieceNames::King => {
                 let mut moves = king_moves(self, board);
                 moves.retain(|&to| {
-                    let attacks = if self.color == ChessColor::White {
-                        &board.attack_black
-                    } else {
-                        &board.attack_white
-                    };
+                    let attacks =
+                        color_ternary!(self.color, &board.attack_white, &board.attack_black);
                     !attacks.contains(&to)
                 });
                 moves
@@ -64,11 +62,7 @@ impl Piece {
             temp_moves.retain(|&to| {
                 let mut new_board = new_board.clone();
                 new_board.move_piece(&self.pos, &to, false);
-                if self.color == ChessColor::White {
-                    !new_board.check_white
-                } else {
-                    !new_board.check_black
-                }
+                color_ternary!(self.color, !new_board.check_white, !new_board.check_black)
             });
         }
 

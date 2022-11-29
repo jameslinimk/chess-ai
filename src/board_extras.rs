@@ -2,7 +2,7 @@ use macroquad::prelude::WHITE;
 use macroquad::shapes::{draw_circle, draw_rectangle};
 use macroquad::texture::draw_texture;
 
-use crate::board::{Board, ChessColor};
+use crate::board::{Board, BoardState, ChessColor};
 use crate::conf::{COLOR_BLACK, COLOR_SELECTED, COLOR_WHITE, MARGIN, SQUARE_SIZE};
 use crate::loc;
 use crate::pieces::piece::{Piece, PieceNames};
@@ -233,5 +233,13 @@ impl Board {
             }
         }
         moves
+    }
+
+    pub fn move_count(&self) -> u32 {
+        self.move_count / 2
+    }
+
+    pub fn is_over(&self) -> bool {
+        matches!(self.state, BoardState::Checkmate(_) | BoardState::Stalemate)
     }
 }

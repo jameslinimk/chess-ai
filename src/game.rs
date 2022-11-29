@@ -7,7 +7,7 @@ use macroquad::prelude::{
 };
 
 use crate::agent::{Agent, AGENTS};
-use crate::board::{Board, BoardState, ChessColor};
+use crate::board::{Board, ChessColor};
 use crate::conf::{
     COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE, EXTRA_WIDTH, HEIGHT,
     MARGIN, SQUARE_SIZE, TEST_FEN,
@@ -208,34 +208,34 @@ impl Game {
         self.update_debug();
         self.update_buttons();
 
-        if self.board.state == BoardState::Normal {
-            if self.board.player_turn() {
-                if let Some(clicked) = self.get_clicked_square() {
-                    // Click same place
-                    if self.selected.is_some() && self.selected.unwrap().pos == clicked {
-                        self.selected = None;
-                        self.highlight = vec![];
-                    // Move (Clicked highlighted piece)
-                    } else if self.highlight.contains(&clicked) {
-                        self.move_piece(&self.selected.unwrap().pos, &clicked);
-                        // Clicked a new place
-                    } else if let Some(piece) = self.board.get(&clicked) {
-                        self.selected = Some(piece);
-                        self.highlight = self.selected.unwrap().get_moves(&self.board);
-                    }
-                }
-            } else {
-                let m = self.agent.get_move(&self.board);
-                if let Some(m) = m {
-                    self.move_piece(&m.0, &m.1);
-                } else {
-                    println!("No moves left!");
-                    exit(0);
+        if self.board.is_over() {
+            println!("Game over: {:?}", self.board.state);
+            exit(0);
+        }
+
+        if self.board.player_turn() {
+            if let Some(clicked) = self.get_clicked_square() {
+                // Click same place
+                if self.selected.is_some() && self.selected.unwrap().pos == clicked {
+                    self.selected = None;
+                    self.highlight = vec![];
+                // Move (Clicked highlighted piece)
+                } else if self.highlight.contains(&clicked) {
+                    self.move_piece(&self.selected.unwrap().pos, &clicked);
+                    // Clicked a new place
+                } else if let Some(piece) = self.board.get(&clicked) {
+                    self.selected = Some(piece);
+                    self.highlight = self.selected.unwrap().get_moves(&self.board);
                 }
             }
         } else {
-            println!("Game over {:?}", self.board.state);
-            exit(0);
+            let m = self.agent.get_move(&self.board);
+            if let Some(m) = m {
+                self.move_piece(&m.0, &m.1);
+            } else {
+                println!("No moves left!");
+                exit(0);
+            }
         }
 
         // Drawing
