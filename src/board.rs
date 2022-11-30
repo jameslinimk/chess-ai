@@ -102,6 +102,9 @@ pub struct Board {
 
     #[new(value = "0")]
     pub move_count: u32,
+
+    #[new(value = "[None; 3]")]
+    pub last_moves: [Option<(Loc, Loc)>; 3],
 }
 impl Board {
     /// Moves the piece in `from` to `to`

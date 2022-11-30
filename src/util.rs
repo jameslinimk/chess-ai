@@ -1,8 +1,15 @@
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter, Result};
 
+use macroquad::prelude::{
+    is_mouse_button_down, is_mouse_button_pressed, mouse_position, MouseButton,
+};
 use macroquad::rand::gen_range;
-use macroquad::text::{draw_text_ex, measure_text, TextParams};
+use macroquad::shapes::draw_rectangle;
+use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
+
+use crate::conf::{COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE};
+use crate::get_font;
 
 pub fn validate_fen(fen: &str) -> bool {
     let rows = fen.split('/');
@@ -149,4 +156,75 @@ macro_rules! color_ternary {
             $if_black
         }
     };
+}
+
+pub struct Button {
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    text: &'static str,
+    hover: bool,
+    pressed: bool,
+    dims: TextDimensions,
+    params: TextParams,
+}
+impl Button {
+    pub fn new(x: f32, y: f32, w: f32, h: f32, text: &'static str) -> Button {
+        let params = TextParams {
+            font_size: 30,
+            font_scale: 1.0,
+            color: COLOR_WHITE,
+            font: get_font(),
+            ..Default::default()
+        };
+        Button {
+            x,
+            y,
+            w,
+            h,
+            text,
+            hover: false,
+            pressed: false,
+            params,
+            dims: measure_text(text, Some(params.font), params.font_size, params.font_scale),
+        }
+    }
+
+    // FIXME clicking doesn't work
+    pub fn update(&mut self) -> bool {
+        self.hover = touches(mouse_position(), (self.x, self.y, self.w, self.h));
+        if self.hover {
+            if is_mouse_button_pressed(MouseButton::Left) {
+                self.pressed = true;
+                return true;
+            } else if is_mouse_button_down(MouseButton::Left) {
+                self.pressed = true;
+            } else {
+                self.pressed = false;
+            }
+        } else {
+            self.pressed = false;
+        }
+
+        false
+    }
+
+    pub fn draw(&self) {
+        let color = match (self.hover, self.pressed) {
+            (true, true) => COLOR_BUTTON_PRESSED,
+            (true, false) => COLOR_BUTTON_HOVER,
+            _ => COLOR_BUTTON,
+        };
+
+        draw_rectangle(self.x, self.y, self.w, self.h, color);
+
+        // Draw centered text
+        draw_text_ex(
+            self.text,
+            self.x + self.w / 2.0 - self.dims.width / 2.0,
+            self.y + self.h / 2.0 + self.dims.height / 2.0,
+            self.params,
+        );
+    }
 }

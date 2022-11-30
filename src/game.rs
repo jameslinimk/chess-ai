@@ -1,91 +1,18 @@
 use std::process::exit;
+use std::thread::spawn;
 
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use derive_new::new;
 use macroquad::prelude::{
-    draw_rectangle, draw_text_ex, is_key_pressed, is_mouse_button_down, is_mouse_button_pressed,
-    measure_text, mouse_position, KeyCode, MouseButton, TextDimensions, TextParams,
+    is_key_pressed, is_mouse_button_pressed, mouse_position, KeyCode, MouseButton, TextParams,
 };
 
 use crate::agent::{Agent, AGENTS};
 use crate::board::{Board, ChessColor};
-use crate::conf::{
-    COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE, EXTRA_WIDTH, HEIGHT,
-    MARGIN, SQUARE_SIZE, TEST_FEN,
-};
+use crate::conf::{COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN, SQUARE_SIZE, TEST_FEN, WASM};
 use crate::pieces::piece::Piece;
-use crate::util::{multiline_text_ex, touches, Loc};
+use crate::util::{multiline_text_ex, touches, Button, Loc};
 use crate::{get_font, loc};
-
-pub struct Button {
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    text: &'static str,
-    hover: bool,
-    pressed: bool,
-    dims: TextDimensions,
-    params: TextParams,
-}
-impl Button {
-    pub fn new(x: f32, y: f32, w: f32, h: f32, text: &'static str) -> Button {
-        let params = TextParams {
-            font_size: 30,
-            font_scale: 1.0,
-            color: COLOR_WHITE,
-            font: get_font(),
-            ..Default::default()
-        };
-        Button {
-            x,
-            y,
-            w,
-            h,
-            text,
-            hover: false,
-            pressed: false,
-            params,
-            dims: measure_text(text, Some(params.font), params.font_size, params.font_scale),
-        }
-    }
-
-    // FIXME clicking doesn't work
-    pub fn update(&mut self) -> bool {
-        self.hover = touches(mouse_position(), (self.x, self.y, self.w, self.h));
-        if self.hover {
-            if is_mouse_button_pressed(MouseButton::Left) {
-                self.pressed = true;
-                return true;
-            } else if is_mouse_button_down(MouseButton::Left) {
-                self.pressed = true;
-            } else {
-                self.pressed = false;
-            }
-        } else {
-            self.pressed = false;
-        }
-
-        false
-    }
-
-    pub fn draw(&self) {
-        let color = match (self.hover, self.pressed) {
-            (true, true) => COLOR_BUTTON_PRESSED,
-            (true, false) => COLOR_BUTTON_HOVER,
-            _ => COLOR_BUTTON,
-        };
-
-        draw_rectangle(self.x, self.y, self.w, self.h, color);
-
-        // Draw centered text
-        draw_text_ex(
-            self.text,
-            self.x + self.w / 2.0 - self.dims.width / 2.0,
-            self.y + self.h / 2.0 + self.dims.height / 2.0,
-            self.params,
-        );
-    }
-}
 
 pub enum EndState {
     Checkmate(ChessColor),
@@ -128,6 +55,13 @@ pub struct Game {
         temp
     }")]
     pub agent_buttons: Vec<(Button, Agent)>,
+
+    #[new(value = "false")]
+    pub waiting_on_agent: bool,
+
+    #[new(value = "unbounded()")]
+    #[allow(clippy::type_complexity)]
+    pub agent_channel: (Sender<Option<(Loc, Loc)>>, Receiver<Option<(Loc, Loc)>>),
 }
 impl Game {
     fn get_clicked_square(&self) -> Option<Loc> {
@@ -179,7 +113,11 @@ impl Game {
             println!("{}", self.board.as_fen());
         }
         if is_key_pressed(KeyCode::R) {
-            self.reset();
+            if self.waiting_on_agent {
+                println!("Waiting on agent...");
+            } else {
+                self.reset();
+            }
         }
     }
 
@@ -217,8 +155,7 @@ impl Game {
             exit(0);
         }
 
-        let debug_mode = true;
-        if debug_mode || self.board.player_turn() {
+        if self.board.player_turn() {
             if let Some(clicked) = self.get_clicked_square() {
                 // Click same place
                 if self.selected.is_some() && self.selected.unwrap().pos == clicked {
@@ -235,13 +172,29 @@ impl Game {
                     }
                 }
             }
+        } else if self.waiting_on_agent {
+            if let Ok(mov) = self.agent_channel.1.try_recv() {
+                self.waiting_on_agent = false;
+                if let Some(m) = mov {
+                    self.move_piece(&m.0, &m.1);
+                } else {
+                    println!("No moves left!");
+                    exit(0);
+                }
+            }
         } else {
-            let m = self.agent.get_move(&self.board);
-            if let Some(m) = m {
-                self.move_piece(&m.0, &m.1);
+            let agent = self.agent;
+            let board = self.board.clone();
+            let sender = self.agent_channel.0.clone();
+            self.waiting_on_agent = true;
+            if WASM {
+                println!("1");
+                sender.send(agent.get_move(&board)).unwrap();
             } else {
-                println!("No moves left!");
-                exit(0);
+                println!("2");
+                spawn(move || {
+                    sender.send(agent.get_move(&board)).unwrap();
+                });
             }
         }
 

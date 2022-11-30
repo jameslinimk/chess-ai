@@ -25,3 +25,5 @@ pub const CASTLE_VALUE: i32 = 5;
 pub const CHECK_VALUE: i32 = 50;
 pub const CHECKMATE_VALUE: i32 = 100;
 pub const STALEMATE_VALUE: i32 = 0;
+
+pub const WASM: bool = cfg!(target_arch = "wasm32");
