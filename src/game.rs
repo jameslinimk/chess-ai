@@ -106,7 +106,7 @@ pub struct Game {
     #[new(value = "vec![]")]
     pub highlight: Vec<Loc>,
 
-    #[new(value = "Agent::Random")]
+    #[new(value = "Agent::Minimax")]
     pub agent: Agent,
 
     #[new(value = "{
@@ -174,6 +174,10 @@ impl Game {
             println!();
             println!("self.board: {:#?}", self.board);
         }
+        if is_key_pressed(KeyCode::T) {
+            println!();
+            println!("{}", self.board.as_fen());
+        }
         if is_key_pressed(KeyCode::R) {
             self.reset();
         }
@@ -213,7 +217,8 @@ impl Game {
             exit(0);
         }
 
-        if self.board.player_turn() {
+        let debug_mode = true;
+        if debug_mode || self.board.player_turn() {
             if let Some(clicked) = self.get_clicked_square() {
                 // Click same place
                 if self.selected.is_some() && self.selected.unwrap().pos == clicked {
@@ -224,8 +229,10 @@ impl Game {
                     self.move_piece(&self.selected.unwrap().pos, &clicked);
                     // Clicked a new place
                 } else if let Some(piece) = self.board.get(&clicked) {
-                    self.selected = Some(piece);
-                    self.highlight = self.selected.unwrap().get_moves(&self.board);
+                    if piece.color == self.board.turn {
+                        self.selected = Some(piece);
+                        self.highlight = self.selected.unwrap().get_moves(&self.board);
+                    }
                 }
             }
         } else {

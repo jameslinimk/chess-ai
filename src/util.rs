@@ -59,10 +59,6 @@ impl Debug for Loc {
     }
 }
 impl Loc {
-    pub fn move_usize(&self, x_diff: usize, y_diff: usize) -> Loc {
-        loc!(self.x + x_diff, self.y + y_diff)
-    }
-
     pub fn copy_move_i32(&self, x_diff: i32, y_diff: i32) -> Loc {
         loc!(
             clamp_negative!(self.x as i32 + x_diff) as usize,

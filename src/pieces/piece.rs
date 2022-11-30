@@ -36,10 +36,6 @@ pub struct Piece {
 impl Piece {
     /// Get valid moves for this piece
     pub fn get_moves(&self, board: &Board) -> Vec<Loc> {
-        if self.color != board.turn {
-            return vec![];
-        }
-
         let mut temp_moves = match self.name {
             PieceNames::Pawn => pawn_moves(self, board),
             PieceNames::Knight => knight_moves(self, board),
@@ -47,7 +43,7 @@ impl Piece {
                 let mut moves = king_moves(self, board);
                 moves.retain(|&to| {
                     let attacks =
-                        color_ternary!(self.color, &board.attack_white, &board.attack_black);
+                        color_ternary!(self.color, &board.attack_black, &board.attack_white);
                     !attacks.contains(&to)
                 });
                 moves
@@ -57,7 +53,9 @@ impl Piece {
             PieceNames::Queen => queen_moves(self, board),
         };
 
-        if board.blockers.contains(&self.pos) {
+        if board.blockers.contains(&self.pos)
+            || color_ternary!(self.color, board.check_white, board.check_black)
+        {
             let new_board = board.clone();
             temp_moves.retain(|&to| {
                 let mut new_board = new_board.clone();

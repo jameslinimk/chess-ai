@@ -128,8 +128,16 @@ impl Board {
 
         // Update check (relies on attacks)
         let (white_king, black_king) = self.get_kings();
-        self.check_white = self.attack_black.contains(&white_king);
-        self.check_black = self.attack_white.contains(&black_king);
+        if let Some(white_king) = white_king {
+            self.check_white = self.attack_black.contains(&white_king);
+        } else {
+            self.check_white = true;
+        }
+        if let Some(black_king) = black_king {
+            self.check_black = self.attack_white.contains(&black_king);
+        } else {
+            self.check_black = true;
+        }
 
         // Update blockers (relies on attacks)
         self.update_blockers();
@@ -149,22 +157,19 @@ impl Board {
 
     /// Detect wether the players are in check, checkmate or stalemate
     fn detect_state(&mut self, check_stale: bool) {
-        self.state = match (self.check_white, self.check_black) {
-            (true, true) => {
-                panic!("Both kings are in check!");
-            }
+        match (self.check_white, self.check_black) {
             (true, false) => {
                 if self.moves_white.is_empty() {
-                    BoardState::Checkmate(ChessColor::White)
+                    self.state = BoardState::Checkmate(ChessColor::White)
                 } else {
-                    BoardState::Check(ChessColor::White)
+                    self.state = BoardState::Check(ChessColor::White)
                 }
             }
             (false, true) => {
                 if self.moves_black.is_empty() {
-                    BoardState::Checkmate(ChessColor::Black)
+                    self.state = BoardState::Checkmate(ChessColor::Black)
                 } else {
-                    BoardState::Check(ChessColor::Black)
+                    self.state = BoardState::Check(ChessColor::Black)
                 }
             }
             (false, false) => {
@@ -175,16 +180,17 @@ impl Board {
                 let moves = color_ternary!(self.turn, &self.moves_white, &self.moves_black);
 
                 if moves.is_empty() {
-                    BoardState::Stalemate
+                    self.state = BoardState::Stalemate
                 } else {
-                    BoardState::Normal
+                    self.state = BoardState::Normal
                 }
             }
+            _ => {}
         };
     }
 
     /// Returns a tuple of the locations of the kings (white, black)
-    fn get_kings(&self) -> (Loc, Loc) {
+    fn get_kings(&self) -> (Option<Loc>, Option<Loc>) {
         let mut white_king = None;
         let mut black_king = None;
         for row in self.raw.iter() {
@@ -198,7 +204,7 @@ impl Board {
                 }
             }
         }
-        (white_king.unwrap(), black_king.unwrap())
+        (white_king, black_king)
     }
 
     fn update_blockers(&mut self) {
@@ -329,10 +335,12 @@ impl Board {
             }
         }
 
-        for (castle, attacks, color) in &[
-            (self.castle_white, &self.attack_white, ChessColor::White),
-            (self.castle_black, &self.attack_black, ChessColor::Black),
-        ] {
+        for (castle, color) in [
+            (self.castle_white, ChessColor::White),
+            (self.castle_black, ChessColor::Black),
+        ]
+        .iter()
+        {
             let subtract = color_ternary!(*color, 1, -1);
 
             // Add value based on castling
@@ -342,9 +350,6 @@ impl Board {
             if castle.1 {
                 score += CASTLE_VALUE * subtract;
             }
-
-            // Add value based on attacks
-            score += attacks.len() as i32 * subtract;
         }
 
         score

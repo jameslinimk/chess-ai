@@ -31,7 +31,7 @@ pub fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
 
     // Forward movement
     let blocked = add_if_empty(board, piece.pos.copy_move_i32(0, direction), &mut moves);
-    if blocked && piece.pos.y == 1 || piece.pos.y == 6 {
+    if blocked && (piece.pos.y == 1 || piece.pos.y == 6) {
         add_if_empty(board, piece.pos.copy_move_i32(0, direction * 2), &mut moves);
     }
 

@@ -112,7 +112,7 @@ impl Agent {
     pub fn get_move(&self, board: &Board) -> Option<(Loc, Loc)> {
         match self {
             Agent::Random => random_agent(board),
-            Agent::Minimax => todo!(),
+            Agent::Minimax => minimax_agent(board),
         }
     }
 }
