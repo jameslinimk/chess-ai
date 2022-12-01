@@ -3,11 +3,13 @@ use std::thread::spawn;
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use derive_new::new;
+use macroquad::audio::{play_sound, PlaySoundParams};
 use macroquad::prelude::{
     is_key_pressed, is_mouse_button_pressed, mouse_position, KeyCode, MouseButton, TextParams,
 };
 
 use crate::agent::{Agent, AGENTS};
+use crate::assets::get_audio;
 use crate::board::{Board, ChessColor};
 use crate::conf::{COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN, SQUARE_SIZE, TEST_FEN, WASM};
 use crate::pieces::piece::Piece;
@@ -93,6 +95,19 @@ impl Game {
         self.board.move_piece(from, to, true);
         self.selected = None;
         self.highlight = vec![];
+
+        // See if move was capture
+        if self.board.get(to).is_some() {
+            play_sound(
+                get_audio("assets/sounds/capture.wav"),
+                PlaySoundParams::default(),
+            );
+        } else {
+            play_sound(
+                get_audio("assets/sounds/move.wav"),
+                PlaySoundParams::default(),
+            );
+        }
     }
 
     fn reset(&mut self) {

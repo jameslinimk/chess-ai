@@ -2,11 +2,13 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
+use macroquad::audio::{load_sound, Sound};
 use macroquad::texture::{load_texture, FilterMode, Texture2D};
 use maplit::hashmap;
 
 lazy_static! {
     static ref ASSET_MAP: Mutex<HashMap<String, Texture2D>> = Mutex::new(hashmap!());
+    static ref AUDIO_MAP: Mutex<HashMap<String, Sound>> = Mutex::new(hashmap!());
 }
 
 pub fn get_image(path: &str) -> Texture2D {
@@ -16,14 +18,7 @@ pub fn get_image(path: &str) -> Texture2D {
     }
 }
 
-pub fn get_image_owned(path: String) -> Texture2D {
-    match ASSET_MAP.lock().unwrap().get(&path) {
-        Some(texture) => texture.to_owned(),
-        None => panic!("{}", format!("Path \"{}\" not loaded!", path)),
-    }
-}
-
-pub async fn load_image(path: &'static str) -> Texture2D {
+pub async fn load_image(path: &str) -> Texture2D {
     if ASSET_MAP.lock().unwrap().contains_key(path) {
         return get_image(path);
     }
@@ -36,12 +31,21 @@ pub async fn load_image(path: &'static str) -> Texture2D {
     resource
 }
 
-pub async fn load_image_owned(path: String) -> Texture2D {
-    if ASSET_MAP.lock().unwrap().contains_key(&path) {
-        return get_image_owned(path);
+pub fn get_audio(path: &str) -> Sound {
+    match AUDIO_MAP.lock().unwrap().get(path) {
+        Some(texture) => texture.to_owned(),
+        None => panic!("{}", format!("Path \"{}\" not loaded!", path)),
     }
-    let resource = load_texture(&path).await.unwrap();
-    resource.set_filter(FilterMode::Nearest);
-    ASSET_MAP.lock().unwrap().insert(path, resource.to_owned());
+}
+
+pub async fn load_audio(path: &str) -> Sound {
+    if AUDIO_MAP.lock().unwrap().contains_key(path) {
+        return get_audio(path);
+    }
+    let resource = load_sound(path).await.unwrap();
+    AUDIO_MAP
+        .lock()
+        .unwrap()
+        .insert(path.to_owned(), resource.to_owned());
     resource
 }

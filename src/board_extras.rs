@@ -242,4 +242,13 @@ impl Board {
     pub fn is_over(&self) -> bool {
         matches!(self.state, BoardState::Checkmate(_) | BoardState::Stalemate)
     }
+
+    pub fn copy(&self) -> Board {
+        let mut board = Board::new();
+        board.raw = self.raw.clone();
+        board.turn = self.turn;
+        board.state = self.state;
+        board.move_count = self.move_count;
+        board
+    }
 }

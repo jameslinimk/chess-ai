@@ -83,20 +83,20 @@ impl Piece {
     pub fn get_image(&self) -> Texture2D {
         let path = match self.color {
             ChessColor::White => match self.name {
-                PieceNames::Pawn => "assets/white_pawn.png",
-                PieceNames::Rook => "assets/white_rook.png",
-                PieceNames::Knight => "assets/white_knight.png",
-                PieceNames::Bishop => "assets/white_bishop.png",
-                PieceNames::Queen => "assets/white_queen.png",
-                PieceNames::King => "assets/white_king.png",
+                PieceNames::Pawn => "assets/pieces/white_pawn.png",
+                PieceNames::Rook => "assets/pieces/white_rook.png",
+                PieceNames::Knight => "assets/pieces/white_knight.png",
+                PieceNames::Bishop => "assets/pieces/white_bishop.png",
+                PieceNames::Queen => "assets/pieces/white_queen.png",
+                PieceNames::King => "assets/pieces/white_king.png",
             },
             ChessColor::Black => match self.name {
-                PieceNames::Pawn => "assets/black_pawn.png",
-                PieceNames::Rook => "assets/black_rook.png",
-                PieceNames::Knight => "assets/black_knight.png",
-                PieceNames::Bishop => "assets/black_bishop.png",
-                PieceNames::Queen => "assets/black_queen.png",
-                PieceNames::King => "assets/black_king.png",
+                PieceNames::Pawn => "assets/pieces/black_pawn.png",
+                PieceNames::Rook => "assets/pieces/black_rook.png",
+                PieceNames::Knight => "assets/pieces/black_knight.png",
+                PieceNames::Bishop => "assets/pieces/black_bishop.png",
+                PieceNames::Queen => "assets/pieces/black_queen.png",
+                PieceNames::King => "assets/pieces/black_king.png",
             },
         };
         get_image(path)
