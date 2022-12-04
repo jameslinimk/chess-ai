@@ -28,7 +28,10 @@ pub fn add_ff(location: Loc, moves: &mut Vec<Loc>) {
 pub fn static_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
-        let loc = piece.pos.copy_move_i32(*x, *y);
+        let (loc, out) = piece.pos.copy_move_i32(*x, *y);
+        if out {
+            continue;
+        }
         add(board, &piece.color, loc, &mut moves);
     }
     moves
@@ -37,7 +40,10 @@ pub fn static_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> 
 pub fn static_attacks(piece: &Piece, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
-        let loc = piece.pos.copy_move_i32(*x, *y);
+        let (loc, out) = piece.pos.copy_move_i32(*x, *y);
+        if out {
+            continue;
+        }
         add_ff(loc, &mut moves);
     }
     moves
@@ -46,7 +52,7 @@ pub fn static_attacks(piece: &Piece, directions: &[(i32, i32)]) -> Vec<Loc> {
 pub fn directional_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
-        let mut loc = piece.pos.copy_move_i32(*x, *y);
+        let mut loc = piece.pos.copy_move_i32(*x, *y).0;
         while valid_pos(&loc) {
             if let Some(capture) = board.get(&loc) {
                 if capture.color != piece.color {
@@ -67,7 +73,7 @@ pub fn directional_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]
 pub fn directional_attacks(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
-        let mut loc = piece.pos.copy_move_i32(*x, *y);
+        let mut loc = piece.pos.copy_move_i32(*x, *y).0;
         while valid_pos(&loc) {
             if board.get(&loc).is_some() {
                 moves.push(loc);

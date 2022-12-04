@@ -31,13 +31,13 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
         'main: {
             let l = if *dir == 1 { 2 } else { 3 };
             for i in 1..=l {
-                let pos = piece.pos.copy_move_i32(i * dir, 0);
+                let pos = piece.pos.copy_move_i32(i * dir, 0).0;
                 if board.get(&pos).is_some() {
                     break 'main;
                 }
             }
 
-            let loc = piece.pos.copy_move_i32(2 * dir, 0);
+            let loc = piece.pos.copy_move_i32(2 * dir, 0).0;
             moves.push(loc);
         };
     }

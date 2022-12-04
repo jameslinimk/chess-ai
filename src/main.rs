@@ -56,3 +56,36 @@ async fn main() {
         next_frame().await;
     }
 }
+
+#[test]
+fn test() {
+    let test1 = vec![
+        Some("2ewdfsdfeqfvsdvqefwef".to_string()),
+        Some("qwfwsgaegaerg".to_string()),
+        Some("eabsefdnaenrsn".to_string()),
+    ];
+
+    let test2 = [
+        Some("2ewdfsdfeqfvsdvqefwef".to_string()),
+        Some("qwfwsgaegaerg".to_string()),
+        Some("eabsefdnaenrsn".to_string()),
+    ];
+
+    let iters = 10000;
+
+    let mut test_sum = 0;
+    let mut test2_sum = 0;
+
+    for _ in 0..=iters {
+        let now = std::time::Instant::now();
+        let _ = test1.clone();
+        test_sum += now.elapsed().as_nanos();
+
+        let now2 = std::time::Instant::now();
+        let _ = test2.clone();
+        test2_sum += now2.elapsed().as_nanos();
+    }
+
+    println!("clone vec took {}ns", test_sum / iters);
+    println!("clone array took {}ns", test2_sum / iters);
+}

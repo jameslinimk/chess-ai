@@ -2,11 +2,11 @@ use macroquad::prelude::WHITE;
 use macroquad::shapes::{draw_circle, draw_rectangle};
 use macroquad::texture::draw_texture;
 
-use crate::board::{Board, BoardState, ChessColor};
+use crate::board::{Board, BoardState, ChessColor, SimpleBoard};
 use crate::conf::{COLOR_BLACK, COLOR_SELECTED, COLOR_WHITE, MARGIN, SQUARE_SIZE};
-use crate::loc;
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::{validate_fen, Loc};
+use crate::{color_ternary, loc};
 
 #[inline(always)]
 fn name_to_fen(name: &PieceNames) -> char {
@@ -23,15 +23,19 @@ fn name_to_fen(name: &PieceNames) -> char {
 impl Board {
     /// Generate a new board given a FEN string
     pub fn from_fen(fen: &str) -> Board {
-        if !validate_fen(fen) {
-            panic!("Invalid FEN string");
+        let mut fen_parts = fen.split_whitespace();
+
+        /* -------------------------------- Board fen ------------------------------- */
+        let board_fen = fen_parts.next().unwrap_or_else(|| panic!("Invalid FEN!"));
+
+        if !validate_fen(board_fen) {
+            panic!("Invalid FEN! (board)");
         }
 
         let mut board = Board::new();
-
         let mut x: usize = 0;
         let mut y: usize = 0;
-        for c in fen.chars() {
+        for c in board_fen.chars() {
             // Check end of row
             if c == '/' {
                 x = 0;
@@ -58,11 +62,57 @@ impl Board {
                 'r' => PieceNames::Rook,
                 'q' => PieceNames::Queen,
                 'k' => PieceNames::King,
-                _ => panic!("Invalid FEN"),
+                _ => panic!("Invalid FEN (board)"),
             };
             board.set(&loc!(x, y), Some(Piece::new(name, color, loc!(x, y))));
             x += 1;
         }
+
+        /* ----------------------------- Extra fen data ----------------------------- */
+        board.turn = match fen_parts.next().unwrap_or_else(|| panic!("Invalid FEN!")) {
+            "w" => ChessColor::White,
+            "b" => ChessColor::Black,
+            _ => panic!("Invalid FEN (turn)"),
+        };
+
+        let castle_fen = fen_parts.next().unwrap_or_else(|| panic!("Invalid FEN!"));
+        for char in castle_fen.chars() {
+            match char {
+                'K' => board.castle_white.1 = true,
+                'Q' => board.castle_white.0 = true,
+                'k' => board.castle_black.1 = true,
+                'q' => board.castle_black.0 = true,
+                '-' => {}
+                _ => panic!("Invalid FEN (castling)"),
+            }
+        }
+
+        match fen_parts.next().unwrap_or_else(|| panic!("Invalid FEN!")) {
+            "-" => {}
+            en_passant => {
+                let loc = Loc::from_notation(en_passant);
+                board.en_passent = Some((
+                    loc,
+                    board
+                        .get(&loc)
+                        .unwrap_or_else(|| panic!("Invalid FEN! (en passent)"))
+                        .color,
+                ));
+            }
+        }
+
+        board.fifty_rule = fen_parts
+            .next()
+            .unwrap_or_else(|| panic!("Invalid FEN!"))
+            .parse()
+            .unwrap_or_else(|_| panic!("Invalid FEN! (fifty rule)"));
+        let full_moves: u32 = fen_parts
+            .next()
+            .unwrap_or_else(|| panic!("Invalid FEN!"))
+            .parse()
+            .unwrap_or_else(|_| panic!("Invalid FEN! (full moves)"));
+        board.half_moves =
+            color_ternary!(board.turn, (full_moves - 1) * 2, (full_moves - 1) * 2 + 1);
 
         board.update_things(true);
         board
@@ -70,8 +120,9 @@ impl Board {
 
     /// Export the board into FEN
     pub fn as_fen(&self) -> String {
-        let mut fen = vec![];
+        let mut fen = "".to_string();
 
+        let mut board_fen = vec![];
         for row in self.raw.iter() {
             let mut row_string = "".to_string();
 
@@ -98,10 +149,50 @@ impl Board {
                     }
                 }
             }
-            fen.push(row_string);
+            board_fen.push(row_string);
         }
 
-        fen.join("/")
+        fen.push_str(&board_fen.join("/"));
+
+        fen.push(' ');
+        fen.push(color_ternary!(self.turn, 'w', 'b'));
+
+        fen.push(' ');
+        if !self.castle_white.0
+            && !self.castle_white.1
+            && !self.castle_black.0
+            && !self.castle_black.1
+        {
+            fen.push('-');
+        } else {
+            if self.castle_white.0 {
+                fen.push('K');
+            }
+            if self.castle_white.1 {
+                fen.push('Q');
+            }
+            if self.castle_black.0 {
+                fen.push('k');
+            }
+            if self.castle_black.1 {
+                fen.push('q');
+            }
+        }
+
+        fen.push(' ');
+        if let Some(en_passent) = self.en_passent {
+            fen.push_str(&en_passent.0.as_notation())
+        } else {
+            fen.push('-');
+        }
+
+        fen.push(' ');
+        fen.push_str(&(self.half_moves - self.fifty_rule).to_string());
+
+        fen.push(' ');
+        fen.push_str(&(self.full_moves() + 1).to_string());
+
+        fen
     }
 
     /// Draws the board to the screen
@@ -164,44 +255,6 @@ impl Board {
             }
             println!();
         }
-
-        // for y in 0..8 {
-        //     for x in 0..8 {
-        //         let white = self.attack_white.contains(&loc!(x, y));
-        //         let black = self.attack_black.contains(&loc!(x, y));
-
-        //         if white && black {
-        //             print!("o");
-        //         } else if white {
-        //             print!("w");
-        //         } else if black {
-        //             print!("b");
-        //         } else {
-        //             print!("-");
-        //         }
-        //     }
-
-        //     print!(" ");
-
-        //     for piece in self.raw[y].iter() {
-        //         match piece {
-        //             Some(p) => {
-        //                 let char = name_to_fen(&p.name);
-        //                 print!(
-        //                     "{}",
-        //                     match p.color {
-        //                         ChessColor::White => char.to_uppercase().to_string(),
-        //                         ChessColor::Black => char.to_lowercase().to_string(),
-        //                     }
-        //                 )
-        //             }
-        //             None => print!("-"),
-        //         }
-        //     }
-        //     println!();
-        // }
-
-        // println!("self.blockers: {:?}", self.blockers);
     }
 
     /* ----------------------------- Util functions ----------------------------- */
@@ -235,20 +288,81 @@ impl Board {
         moves
     }
 
-    pub fn move_count(&self) -> u32 {
-        self.move_count / 2
+    pub fn full_moves(&self) -> u32 {
+        self.half_moves / 2
     }
 
     pub fn is_over(&self) -> bool {
         matches!(self.state, BoardState::Checkmate(_) | BoardState::Stalemate)
     }
 
-    pub fn copy(&self) -> Board {
+    pub fn copy_board(&self) -> Board {
         let mut board = Board::new();
-        board.raw = self.raw.clone();
-        board.turn = self.turn;
-        board.state = self.state;
-        board.move_count = self.move_count;
+
+        macro_rules! copy {
+            ($($x:ident,)*) => {
+                $(
+                    board.$x = self.$x;
+                )*
+            };
+        }
+
+        copy! {
+            raw,
+            turn,
+            state,
+            color_player,
+            color_agent,
+            castle_black,
+            castle_white,
+            en_passent,
+            score,
+            check_white,
+            check_black,
+            half_moves,
+            prev_states,
+            fifty_rule,
+        }
+
         board
     }
+
+    pub fn as_simple(&self) -> SimpleBoard {
+        SimpleBoard {
+            raw: self.raw,
+            castle_black: self.castle_black,
+            castle_white: self.castle_white,
+            en_passent: self.en_passent,
+        }
+    }
+}
+
+#[test]
+fn test_fen() {
+    // Test fen stuff
+    let board = Board::from_fen(crate::conf::DEFAULT_FEN);
+    let fen = board.as_fen();
+    assert_eq!(
+        fen,
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    );
+    let board2 = Board::from_fen(&fen);
+    assert_eq!(board, board2);
+
+    // Test moves
+    let moves = board.get_moves(ChessColor::White);
+    assert_eq!(moves.len(), 20);
+
+    // Test copy board
+    let mut board3 = board.copy_board();
+    board3.move_piece(&loc!(1, 1), &loc!(3, 3), true);
+    assert_ne!(board, board3);
+
+    // Test checkmate
+    board3 = board.copy_board();
+    board3.move_piece(&loc!(6, 4), &loc!(4, 4), true);
+    board3.move_piece(&loc!(1, 4), &loc!(3, 4), true);
+    board3.move_piece(&loc!(6, 5), &loc!(4, 5), true);
+    board3.move_piece(&loc!(0, 3), &loc!(4, 7), true);
+    assert_eq!(board3.state, BoardState::Checkmate(ChessColor::White));
 }

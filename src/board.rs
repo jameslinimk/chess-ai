@@ -1,12 +1,10 @@
-use std::collections::HashSet;
-
 use derive_new::new;
-use maplit::hashset;
+use rustc_hash::FxHashSet;
 
 use crate::conf::{CASTLE_VALUE, CHECKMATE_VALUE, CHECK_VALUE, STALEMATE_VALUE};
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::Loc;
-use crate::{color_ternary, loc};
+use crate::{color_ternary, hashset, loc};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum ChessColor {
@@ -23,7 +21,7 @@ impl ChessColor {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BoardState {
     Normal,
     /// Attached color is who is in check
@@ -33,8 +31,16 @@ pub enum BoardState {
     Stalemate,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, new)]
+pub struct SimpleBoard {
+    pub raw: [[Option<Piece>; 8]; 8],
+    pub castle_black: (bool, bool),
+    pub castle_white: (bool, bool),
+    pub en_passent: Option<(Loc, ChessColor)>,
+}
+
 /// Represents a chess board and metadata
-#[derive(Debug, Clone, new)]
+#[derive(Debug, Clone, PartialEq, Eq, new)]
 pub struct Board {
     /// Array with the raw 8x8 board data
     #[new(value = "[[None; 8]; 8]")]
@@ -74,11 +80,11 @@ pub struct Board {
 
     /// Which squares are under attack by white pieces
     #[new(value = "hashset! {}")]
-    pub attack_white: HashSet<Loc>,
+    pub attack_white: FxHashSet<Loc>,
 
     /// Which squares are under attack by black pieces
     #[new(value = "hashset! {}")]
-    pub attack_black: HashSet<Loc>,
+    pub attack_black: FxHashSet<Loc>,
 
     /// Wether the white king is in check
     #[new(value = "false")]
@@ -90,7 +96,7 @@ pub struct Board {
 
     /// Pieces that block attackers
     #[new(value = "hashset! {}")]
-    pub blockers: HashSet<Loc>,
+    pub blockers: FxHashSet<Loc>,
 
     /// Available moves for white
     #[new(value = "vec![]")]
@@ -101,27 +107,42 @@ pub struct Board {
     pub moves_black: Vec<(Loc, Loc)>,
 
     #[new(value = "0")]
-    pub move_count: u32,
+    pub half_moves: u32,
 
-    #[new(value = "[None; 3]")]
-    pub last_moves: [Option<(Loc, Loc)>; 3],
+    #[new(value = "[None; 12]")]
+    pub prev_states: [Option<SimpleBoard>; 12],
+
+    /// Updates on piece capture or pawn move
+    #[new(value = "0")]
+    pub fifty_rule: u32,
 }
 impl Board {
     /// Moves the piece in `from` to `to`
-    pub fn move_piece(&mut self, from: &Loc, to: &Loc, check_stale: bool) {
-        // Moving piece (relies on nothing)
-        self.move_actions(from, to);
+    pub fn move_piece(&mut self, from: &Loc, to: &Loc, check_stale: bool) -> bool {
+        // Moving piece
+        let capture = self.move_actions(from, to);
         self.move_raw(from, to);
 
-        // Update turn (relies on nothing)
+        // Update turn
         self.turn = match self.turn {
             ChessColor::Black => ChessColor::White,
             ChessColor::White => ChessColor::Black,
         };
-        self.move_count += 1;
+        self.half_moves += 1;
+
+        // 3fold repetition
+        self.prev_states.rotate_right(1);
+        self.prev_states[0] = Some(self.as_simple());
+
+        // Fifty move rule (pawn move is done in move_actions)
+        if capture {
+            self.fifty_rule = self.half_moves;
+        }
 
         // Update other metadata
         self.update_things(check_stale);
+
+        capture
     }
 
     pub fn update_things(&mut self, check_stale: bool) {
@@ -160,6 +181,23 @@ impl Board {
 
     /// Detect wether the players are in check, checkmate or stalemate
     fn detect_state(&mut self, check_stale: bool) {
+        if self.half_moves - self.fifty_rule >= 50 {
+            self.state = BoardState::Stalemate;
+            return;
+        }
+
+        let mut sum = 0;
+        let self_simple = self.as_simple();
+        for simple in self.prev_states.iter().flatten() {
+            if simple == &self_simple {
+                sum += 1;
+                if sum >= 3 {
+                    self.state = BoardState::Stalemate;
+                    return;
+                }
+            }
+        }
+
         match (self.check_white, self.check_black) {
             (true, false) => {
                 if self.moves_white.is_empty() {
@@ -228,7 +266,7 @@ impl Board {
         }
     }
 
-    pub fn get_attacks(&mut self, color: ChessColor) -> HashSet<Loc> {
+    pub fn get_attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
         let mut attacks = hashset! {};
         for row in self.raw.iter() {
             for piece in row.iter().flatten() {
@@ -248,8 +286,9 @@ impl Board {
 
     /// Special actions that happen when moving a piece
     /// - IE: Castling, en passent, pawn promotion, etc...
-    fn move_actions(&mut self, from: &Loc, to: &Loc) {
+    fn move_actions(&mut self, from: &Loc, to: &Loc) -> bool {
         let mut set_en_passent = false;
+        let mut capture = self.get(to).is_some();
 
         if let Some(piece) = self.raw[from.y][from.x].as_mut() {
             piece.pos = *to;
@@ -298,9 +337,13 @@ impl Board {
                         if let Some((loc, color)) = self.en_passent {
                             if to.x == loc.x && to.y.abs_diff(loc.y) == 1 && piece.color != color {
                                 self.set(&loc, None);
+                                capture = true;
                             }
                         }
                     }
+
+                    // Fifty move rule
+                    self.fifty_rule = self.half_moves;
                 }
                 _ => {}
             }
@@ -310,6 +353,8 @@ impl Board {
         if !set_en_passent && self.en_passent.is_some() {
             self.en_passent = None;
         }
+
+        capture
     }
 
     /// Calculates the score of the board, for the color specified
@@ -317,9 +362,6 @@ impl Board {
         match self.state {
             BoardState::Checkmate(check_color) => {
                 return color_ternary!(check_color, -CHECKMATE_VALUE, CHECKMATE_VALUE);
-            }
-            BoardState::Check(check_color) => {
-                return color_ternary!(check_color, -CHECK_VALUE, CHECK_VALUE);
             }
             BoardState::Stalemate => return STALEMATE_VALUE,
             _ => {}
@@ -353,6 +395,10 @@ impl Board {
             if castle.1 {
                 score += CASTLE_VALUE * subtract;
             }
+        }
+
+        if let BoardState::Check(check_color) = self.state {
+            color_ternary!(check_color, score -= CHECK_VALUE, score += CHECK_VALUE);
         }
 
         score

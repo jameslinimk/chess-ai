@@ -1,14 +1,15 @@
-use std::collections::HashMap;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 use macroquad::audio::{load_sound, Sound};
 use macroquad::texture::{load_texture, FilterMode, Texture2D};
-use maplit::hashmap;
+use rustc_hash::FxHashMap;
+
+use crate::hashmap;
 
 lazy_static! {
-    static ref ASSET_MAP: Mutex<HashMap<String, Texture2D>> = Mutex::new(hashmap!());
-    static ref AUDIO_MAP: Mutex<HashMap<String, Sound>> = Mutex::new(hashmap!());
+    static ref ASSET_MAP: Mutex<FxHashMap<String, Texture2D>> = Mutex::new(hashmap! {});
+    static ref AUDIO_MAP: Mutex<FxHashMap<String, Sound>> = Mutex::new(hashmap! {});
 }
 
 pub fn get_image(path: &str) -> Texture2D {

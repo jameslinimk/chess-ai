@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::fmt::{Debug, Formatter, Result};
+use std::fmt;
 
 use macroquad::prelude::{
     is_mouse_button_down, is_mouse_button_pressed, mouse_position, MouseButton,
@@ -45,6 +45,42 @@ macro_rules! loc {
     };
 }
 
+#[macro_export]
+macro_rules! hashmap {
+    (@single $($x:tt)*) => (());
+    (@count $($rest:expr),*) => (<[()]>::len(&[$(hashmap!(@single $rest)),*]));
+
+    ($($key:expr => $value:expr,)+) => { hashmap!($($key => $value),+) };
+    ($($key:expr => $value:expr),*) => {
+        {
+            let _cap = hashmap!(@count $($key),*);
+            let mut _map = rustc_hash::FxHashMap::with_capacity_and_hasher(_cap, Default::default());
+            $(
+                let _ = _map.insert($key, $value);
+            )*
+            _map
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! hashset {
+    (@single $($x:tt)*) => (());
+    (@count $($rest:expr),*) => (<[()]>::len(&[$(hashset!(@single $rest)),*]));
+
+    ($($key:expr,)+) => { hashset!($($key),+) };
+    ($($key:expr),*) => {
+        {
+            let _cap = hashset!(@count $($key),*);
+            let mut _set = rustc_hash::FxHashSet::with_capacity_and_hasher(_cap, Default::default());
+            $(
+                let _ = _set.insert($key);
+            )*
+            _set
+        }
+    };
+}
+
 macro_rules! clamp_negative {
     ($number: expr) => {
         if $number.is_negative() {
@@ -60,17 +96,23 @@ pub struct Loc {
     pub x: usize,
     pub y: usize,
 }
-impl Debug for Loc {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl fmt::Debug for Loc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({}, {})", self.x, self.y)
     }
 }
 impl Loc {
-    pub fn copy_move_i32(&self, x_diff: i32, y_diff: i32) -> Loc {
-        loc!(
-            clamp_negative!(self.x as i32 + x_diff) as usize,
-            clamp_negative!(self.y as i32 + y_diff) as usize
-        )
+    pub fn copy_move_i32(&self, x_diff: i32, y_diff: i32) -> (Loc, bool) {
+        let mut new_x = self.x as i32 + x_diff;
+        let mut new_y = self.y as i32 + y_diff;
+
+        if new_x < 0 || new_y < 0 {
+            new_x = clamp_negative!(new_x);
+            new_y = clamp_negative!(new_y);
+            return (loc!(new_x as usize, new_y as usize), true);
+        }
+
+        (loc!(new_x as usize, new_y as usize), false)
     }
 
     pub fn move_i32(&mut self, x_diff: i32, y_diff: i32) -> bool {
@@ -78,8 +120,8 @@ impl Loc {
         let new_y = self.y as i32 + y_diff;
 
         if new_x < 0 || new_y < 0 {
-            self.x = 0;
-            self.y = 0;
+            self.x = clamp_negative!(new_x) as usize;
+            self.y = clamp_negative!(new_y) as usize;
             return false;
         }
 
@@ -89,17 +131,7 @@ impl Loc {
     }
 
     pub fn as_notation(&self) -> String {
-        let x = match self.x {
-            0 => 'a',
-            1 => 'b',
-            2 => 'c',
-            3 => 'd',
-            4 => 'e',
-            5 => 'f',
-            6 => 'g',
-            7 => 'h',
-            _ => panic!(),
-        };
+        let x = char::from_u32(self.x as u32 + 97).unwrap();
         let y = match self.y {
             0 => '8',
             1 => '7',
@@ -113,6 +145,36 @@ impl Loc {
         };
         format!("{}{}", x, y)
     }
+
+    pub fn from_notation(notation: &str) -> Loc {
+        let mut chars = notation.chars();
+        let x = chars.next().unwrap() as u32 - 97;
+        let y = match chars.next().unwrap() {
+            '8' => 0,
+            '7' => 1,
+            '6' => 2,
+            '5' => 3,
+            '4' => 4,
+            '3' => 5,
+            '2' => 6,
+            '1' => 7,
+            _ => panic!(),
+        };
+        loc!(x as usize, y)
+    }
+}
+
+#[test]
+fn test_notation() {
+    // Test Loc::as_notation
+    assert_eq!(loc!(0, 0).as_notation(), "a8");
+    assert_eq!(loc!(1, 0).as_notation(), "b8");
+    assert_eq!(loc!(2, 0).as_notation(), "c8");
+
+    // Test Loc::from_notation
+    assert_eq!(Loc::from_notation("a8"), loc!(0, 0));
+    assert_eq!(Loc::from_notation("b8"), loc!(1, 0));
+    assert_eq!(Loc::from_notation("c8"), loc!(2, 0));
 }
 
 pub fn touches(point: (f32, f32), rect: (f32, f32, f32, f32)) -> bool {
@@ -191,7 +253,6 @@ impl Button {
         }
     }
 
-    // FIXME clicking doesn't work
     pub fn update(&mut self) -> bool {
         self.hover = touches(mouse_position(), (self.x, self.y, self.w, self.h));
         if self.hover {

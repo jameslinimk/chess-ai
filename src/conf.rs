@@ -17,8 +17,8 @@ pub const COLOR_BUTTON_HOVER: Color = color_u8!(149, 187, 74, 255);
 pub const COLOR_BUTTON_PRESSED: Color = color_u8!(138, 172, 70, 255);
 
 // Config for board
-pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
-pub const TEST_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+pub const TEST_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // Game state values
 pub const CASTLE_VALUE: i32 = 5;

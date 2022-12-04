@@ -15,14 +15,14 @@ use crate::util::Loc;
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PieceNames {
     Pawn,
-    Knight,
     Bishop,
+    Knight,
     Rook,
     Queen,
     King,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, new, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, new)]
 pub struct Piece {
     /// Type of piece
     pub name: PieceNames,

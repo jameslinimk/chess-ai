@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
 use lazy_static::lazy_static;
 use macroquad::rand::ChooseRandom;
-use maplit::hashmap;
+use rustc_hash::FxHashMap;
 
 use crate::board::{Board, ChessColor};
 use crate::util::{choose_array, Loc};
-use crate::{color_ternary, loc};
+use crate::{color_ternary, hashmap, loc};
 
 pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
     let moves = board.get_moves(board.color_agent);
@@ -29,7 +27,7 @@ const OPENINGS_WHITE: [(Loc, Loc); 4] = [
 
 fn minimax(
     board: &Board,
-    player: bool,
+    maximizing: bool,
     depth: u8,
     mut alpha: i32,
     mut beta: i32,
@@ -40,7 +38,7 @@ fn minimax(
     }
 
     // First move for white
-    if board.move_count() == 0 {
+    if board.full_moves() == 0 {
         let openings = color_ternary!(board.color_agent, &OPENINGS_WHITE, &OPENINGS_BLACK);
         return (0, Some(*choose_array(openings)));
     }
@@ -51,15 +49,15 @@ fn minimax(
         board.get_moves(ChessColor::Black)
     );
 
-    if color_ternary!(board.turn, true, false) == player {
+    if maximizing {
         let mut max_score = i32::MIN;
         let mut best_move = None;
 
         for (from, to) in moves.iter() {
-            let mut test_board = board.clone();
+            let mut test_board = board.copy_board();
             test_board.move_piece(from, to, true);
 
-            let (score, _) = minimax(&test_board, !player, depth - 1, alpha, beta);
+            let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
 
             alpha = alpha.max(score);
             if beta <= alpha {
@@ -72,16 +70,16 @@ fn minimax(
             }
         }
 
-        (max_score, Some(best_move.unwrap()))
+        (max_score, best_move)
     } else {
         let mut min_score = i32::MAX;
         let mut best_move = None;
 
         for (from, to) in moves.iter() {
-            let mut test_board = board.clone();
+            let mut test_board = board.copy_board();
             test_board.move_piece(from, to, false);
 
-            let (score, _) = minimax(&test_board, player, depth - 1, alpha, beta);
+            let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
 
             beta = beta.min(score);
             if beta <= alpha {
@@ -94,12 +92,12 @@ fn minimax(
             }
         }
 
-        (min_score, Some(best_move.unwrap()))
+        (min_score, best_move)
     }
 }
 
 pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
-    let (_, best_move) = minimax(board, false, 3, i32::MIN, i32::MAX);
+    let (_, best_move) = minimax(board, true, 3, i32::MIN, i32::MAX);
     best_move
 }
 
@@ -118,7 +116,7 @@ impl Agent {
 }
 
 lazy_static! {
-    pub static ref AGENTS: HashMap<&'static str, Agent> = hashmap! {
+    pub static ref AGENTS: FxHashMap<&'static str, Agent> = hashmap! {
         "Random" => Agent::Random,
         "Minimax" => Agent::Minimax,
     };

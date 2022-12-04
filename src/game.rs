@@ -10,16 +10,11 @@ use macroquad::prelude::{
 
 use crate::agent::{Agent, AGENTS};
 use crate::assets::get_audio;
-use crate::board::{Board, ChessColor};
+use crate::board::Board;
 use crate::conf::{COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN, SQUARE_SIZE, TEST_FEN, WASM};
 use crate::pieces::piece::Piece;
 use crate::util::{multiline_text_ex, touches, Button, Loc};
 use crate::{get_font, loc};
-
-pub enum EndState {
-    Checkmate(ChessColor),
-    Stalemate,
-}
 
 #[derive(new)]
 pub struct Game {
@@ -92,12 +87,12 @@ impl Game {
 
     fn move_piece(&mut self, from: &Loc, to: &Loc) {
         self.move_history.push((*from, *to));
-        self.board.move_piece(from, to, true);
+        let capture = self.board.move_piece(from, to, true);
         self.selected = None;
         self.highlight = vec![];
 
         // See if move was capture
-        if self.board.get(to).is_some() {
+        if capture {
             play_sound(
                 get_audio("assets/sounds/capture.wav"),
                 PlaySoundParams::default(),
@@ -116,15 +111,12 @@ impl Game {
 
     fn update_debug(&mut self) {
         if is_key_pressed(KeyCode::F) {
-            println!();
             self.board.print();
         }
         if is_key_pressed(KeyCode::E) {
-            println!();
             println!("self.board: {:#?}", self.board);
         }
         if is_key_pressed(KeyCode::T) {
-            println!();
             println!("{}", self.board.as_fen());
         }
         if is_key_pressed(KeyCode::R) {
@@ -203,10 +195,8 @@ impl Game {
             let sender = self.agent_channel.0.clone();
             self.waiting_on_agent = true;
             if WASM {
-                println!("1");
                 sender.send(agent.get_move(&board)).unwrap();
             } else {
-                println!("2");
                 spawn(move || {
                     sender.send(agent.get_move(&board)).unwrap();
                 });
