@@ -19,6 +19,10 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     let mut moves = static_moves(piece, board, &directions);
 
     // Castling
+    if color_ternary!(piece.color, board.check_white, board.check_black) {
+        return moves;
+    }
+
     let can_castle = color_ternary!(piece.color, board.castle_white, board.castle_black);
     let mut directions = Vec::with_capacity(2);
     if can_castle.0 {

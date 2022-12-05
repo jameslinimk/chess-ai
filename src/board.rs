@@ -143,6 +143,35 @@ pub struct Board {
 impl Board {
     /// Moves the piece in `from` to `to`
     pub fn move_piece(&mut self, from: &Loc, to: &Loc, check_stale: bool) -> bool {
+        if self.get(from).is_none() {
+            return false;
+        }
+
+        let (capture, capture_pos) = self.is_capture(from, to);
+
+        // Special case where a castle rook is captured
+        if capture {
+            let piece = self.get(&capture_pos).unwrap();
+            if piece.name == PieceNames::Rook {
+                match piece.color {
+                    ChessColor::White => {
+                        if capture_pos == loc!(0, 0) {
+                            self.castle_white.0 = false;
+                        } else if capture_pos == loc!(7, 0) {
+                            self.castle_white.1 = false;
+                        }
+                    }
+                    ChessColor::Black => {
+                        if capture_pos == loc!(0, 7) {
+                            self.castle_black.0 = false;
+                        } else if capture_pos == loc!(7, 7) {
+                            self.castle_black.1 = false;
+                        }
+                    }
+                }
+            }
+        }
+
         // Moving piece
         self.move_actions(from, to);
         self.move_raw(from, to);
@@ -159,7 +188,6 @@ impl Board {
         self.prev_states[0] = Some(self.as_simple());
 
         // Fifty move rule (pawn move is done in move_actions)
-        let (capture, _) = self.is_capture(from, to);
         if capture {
             self.fifty_rule = self.half_moves;
         }

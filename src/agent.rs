@@ -67,7 +67,7 @@ fn minimax(
 
         for (from, to) in moves.iter() {
             let mut test_board = board.clone();
-            test_board.move_piece(from, to, true);
+            test_board.move_piece(from, to, false);
 
             let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
 
@@ -76,10 +76,10 @@ fn minimax(
                 best_move = Some((*from, *to));
             }
 
-            alpha = alpha.max(max_score);
-            if beta <= alpha {
-                break;
-            }
+            // alpha = alpha.max(max_score);
+            // if beta <= alpha {
+            //     break;
+            // }
         }
 
         (max_score, best_move)
@@ -98,10 +98,10 @@ fn minimax(
                 best_move = Some((*from, *to));
             }
 
-            beta = beta.min(min_score);
-            if beta <= alpha {
-                break;
-            }
+            // beta = beta.min(min_score);
+            // if beta <= alpha {
+            //     break;
+            // }
         }
 
         (min_score, best_move)

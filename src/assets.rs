@@ -3,7 +3,8 @@
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-use macroquad::audio::{load_sound, Sound};
+use macroquad::audio::{load_sound, load_sound_from_bytes, Sound};
+use macroquad::prelude::ImageFormat;
 use macroquad::texture::{load_texture, FilterMode, Texture2D};
 use rustc_hash::FxHashMap;
 
@@ -34,6 +35,19 @@ pub async fn load_image(path: &str) -> Texture2D {
     resource
 }
 
+pub async fn load_image_from_bytes(path: &str, bytes: &[u8]) -> Texture2D {
+    if ASSET_MAP.lock().unwrap().contains_key(path) {
+        return get_image(path);
+    }
+    let resource = Texture2D::from_file_with_format(bytes, Some(ImageFormat::Png));
+    resource.set_filter(FilterMode::Nearest);
+    ASSET_MAP
+        .lock()
+        .unwrap()
+        .insert(path.to_owned(), resource.to_owned());
+    resource
+}
+
 pub fn get_audio(path: &str) -> Sound {
     match AUDIO_MAP.lock().unwrap().get(path) {
         Some(texture) => texture.to_owned(),
@@ -46,6 +60,18 @@ pub async fn load_audio(path: &str) -> Sound {
         return get_audio(path);
     }
     let resource = load_sound(path).await.unwrap();
+    AUDIO_MAP
+        .lock()
+        .unwrap()
+        .insert(path.to_owned(), resource.to_owned());
+    resource
+}
+
+pub async fn load_audio_from_bytes(path: &str, bytes: &[u8]) -> Sound {
+    if AUDIO_MAP.lock().unwrap().contains_key(path) {
+        return get_audio(path);
+    }
+    let resource = load_sound_from_bytes(bytes).await.unwrap();
     AUDIO_MAP
         .lock()
         .unwrap()

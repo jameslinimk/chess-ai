@@ -2,8 +2,6 @@
 //!
 //! Contains all the functions related to calculating the score of the board / move. Used for the minimax search
 
-use macroquad::prelude::{info, warn};
-
 use crate::board::{Board, BoardState, ChessColor};
 use crate::color_ternary;
 use crate::pieces::piece::{Piece, PieceNames};
@@ -250,9 +248,6 @@ impl Board {
         let piece = match self.get(from) {
             Some(piece) => piece,
             None => {
-                info!("{:?}", self);
-                info!("{:?} {:?}", from, to);
-                warn!("?? Piece is none in move_value!!!!");
                 return -100;
             }
         };
