@@ -1,3 +1,15 @@
+//! Agents for [Board]. Has a minimax agent and a random agent. Change between agents in the GUI or editing `Board.agent`
+//!
+//! # Minimax
+//!
+//! - Alpha-beta pruning
+//! - Sorted move ordering
+//! - Stored openings
+//!
+//! # Random
+//!
+//! - Just picks a valid move by random
+
 use lazy_static::lazy_static;
 use macroquad::rand::ChooseRandom;
 use rustc_hash::FxHashMap;
@@ -7,15 +19,15 @@ use crate::util::{choose_array, Loc};
 use crate::{color_ternary, hashmap, loc};
 
 pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
-    let moves = board.get_moves(board.color_agent);
+    let moves = board.get_moves(board.agent_color);
     moves.choose().copied()
 }
 
 const OPENINGS_BLACK: [(Loc, Loc); 4] = [
     (loc!(2, 1), loc!(2, 3)),
     (loc!(3, 1), loc!(3, 3)),
+    (loc!(4, 1), loc!(4, 3)),
     (loc!(5, 1), loc!(5, 3)),
-    (loc!(6, 1), loc!(6, 3)),
 ];
 
 const OPENINGS_WHITE: [(Loc, Loc); 4] = [
@@ -39,14 +51,14 @@ fn minimax(
 
     // First move for white
     if board.full_moves() == 0 {
-        let openings = color_ternary!(board.color_agent, &OPENINGS_WHITE, &OPENINGS_BLACK);
+        let openings = color_ternary!(board.agent_color, &OPENINGS_WHITE, &OPENINGS_BLACK);
         return (0, Some(*choose_array(openings)));
     }
 
     let moves = color_ternary!(
         board.turn,
-        board.get_moves(ChessColor::White),
-        board.get_moves(ChessColor::Black)
+        board.get_sorted_moves(ChessColor::White),
+        board.get_sorted_moves(ChessColor::Black)
     );
 
     if maximizing {
@@ -54,19 +66,19 @@ fn minimax(
         let mut best_move = None;
 
         for (from, to) in moves.iter() {
-            let mut test_board = board.copy_board();
+            let mut test_board = board.clone();
             test_board.move_piece(from, to, true);
 
             let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
 
-            alpha = alpha.max(score);
-            if beta <= alpha {
-                break;
-            }
-
             if score >= max_score {
                 max_score = score;
                 best_move = Some((*from, *to));
+            }
+
+            alpha = alpha.max(max_score);
+            if beta <= alpha {
+                break;
             }
         }
 
@@ -76,19 +88,19 @@ fn minimax(
         let mut best_move = None;
 
         for (from, to) in moves.iter() {
-            let mut test_board = board.copy_board();
+            let mut test_board = board.clone();
             test_board.move_piece(from, to, false);
 
             let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
 
-            beta = beta.min(score);
-            if beta <= alpha {
-                break;
-            }
-
             if score <= min_score {
                 min_score = score;
                 best_move = Some((*from, *to));
+            }
+
+            beta = beta.min(min_score);
+            if beta <= alpha {
+                break;
             }
         }
 
@@ -97,7 +109,7 @@ fn minimax(
 }
 
 pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
-    let (_, best_move) = minimax(board, true, 3, i32::MIN, i32::MAX);
+    let (_, best_move) = minimax(board, false, 3, i32::MIN, i32::MAX);
     best_move
 }
 

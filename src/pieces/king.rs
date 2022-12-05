@@ -1,6 +1,6 @@
 use super::piece::Piece;
 use super::util::{static_attacks, static_moves};
-use crate::board::{Board, ChessColor};
+use crate::board::Board;
 use crate::color_ternary;
 use crate::util::Loc;
 
@@ -29,7 +29,7 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     }
     for dir in directions.iter() {
         'main: {
-            let l = if *dir == 1 { 2 } else { 3 };
+            let l = if dir == &1 { 2 } else { 3 };
             for i in 1..=l {
                 let pos = piece.pos.copy_move_i32(i * dir, 0).0;
                 if board.get(&pos).is_some() {

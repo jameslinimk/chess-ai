@@ -12,6 +12,7 @@ git pull
 # Build project
 rustup target add wasm32-unknown-unknown
 cargo build --target wasm32-unknown-unknown --release
+cargo doc --no-deps --release
 
 # Build server
 cd server || exit

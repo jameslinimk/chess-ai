@@ -1,22 +1,38 @@
-#![allow(dead_code)]
+//! A fully rust chess engine + AI + GUI written in Rust and Macroquad (a graphics library)
+//!
+//! AI is a minimax search with alpha-beta pruning, move-ordering, and Tomasz Michniewski's simplified evaluation function
+//!
+//! - Release hosted at <https://chess.jamesalin.com>
+//! - Source here <https://github.com/jameslinimk/chess-ai>
+//!
+//! # Building
+//!
+//! Clone and build using `cargo build`
+//!
+//! **Make sure you copy `/assets` from Github (above) and put it in base directory, else rust will panic!**
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use conf::{COLOR_BACKGROUND, HEIGHT, WIDTH};
 use game::Game;
 use macroquad::prelude::{next_frame, Conf};
+use macroquad::rand::srand;
 use macroquad::text::{load_ttf_font, Font};
 use macroquad::window::clear_background;
 
 use crate::assets::{load_audio, load_image};
 
-mod agent;
-mod assets;
-mod board;
-mod board_extras;
-mod conf;
-mod game;
-mod pieces;
-mod util;
+pub mod agent;
+pub mod assets;
+pub mod board;
+pub mod board_eval;
+pub mod board_extras;
+pub mod conf;
+pub mod game;
+pub mod pieces;
+pub mod util;
 
+/// Macroquad config function
 fn config() -> Conf {
     Conf {
         window_title: "Chess AI".to_owned(),
@@ -27,13 +43,23 @@ fn config() -> Conf {
     }
 }
 
+/// Font used throughout GUI, stored as static for accessibility
 static mut FONT: Option<Font> = None;
+
+/// Safely get [FONT] in safe code
 pub fn get_font() -> Font {
     unsafe { FONT.unwrap() }
 }
 
 #[macroquad::main(config)]
 async fn main() {
+    let start = SystemTime::now();
+    let seed = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_millis() as u64;
+    srand(seed);
+
     // Load chess pieces
     for color in ["black", "white"].iter() {
         for piece in ["pawn", "knight", "bishop", "rook", "queen", "king"].iter() {
@@ -55,37 +81,4 @@ async fn main() {
         game.update();
         next_frame().await;
     }
-}
-
-#[test]
-fn test() {
-    let test1 = vec![
-        Some("2ewdfsdfeqfvsdvqefwef".to_string()),
-        Some("qwfwsgaegaerg".to_string()),
-        Some("eabsefdnaenrsn".to_string()),
-    ];
-
-    let test2 = [
-        Some("2ewdfsdfeqfvsdvqefwef".to_string()),
-        Some("qwfwsgaegaerg".to_string()),
-        Some("eabsefdnaenrsn".to_string()),
-    ];
-
-    let iters = 10000;
-
-    let mut test_sum = 0;
-    let mut test2_sum = 0;
-
-    for _ in 0..=iters {
-        let now = std::time::Instant::now();
-        let _ = test1.clone();
-        test_sum += now.elapsed().as_nanos();
-
-        let now2 = std::time::Instant::now();
-        let _ = test2.clone();
-        test2_sum += now2.elapsed().as_nanos();
-    }
-
-    println!("clone vec took {}ns", test_sum / iters);
-    println!("clone array took {}ns", test2_sum / iters);
 }

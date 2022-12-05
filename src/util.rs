@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fmt;
 
 use macroquad::prelude::{
@@ -11,6 +10,7 @@ use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
 use crate::conf::{COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE};
 use crate::get_font;
 
+/// Makes sure the board part of fen is valid, doesn't check if there are 5 kings, 500 pawns, etc
 pub fn validate_fen(fen: &str) -> bool {
     let rows = fen.split('/');
     let mut rows_len = 0;
@@ -38,13 +38,15 @@ pub fn validate_fen(fen: &str) -> bool {
     true
 }
 
+/// Shorthand for creating a `Loc`
 #[macro_export]
 macro_rules! loc {
     ($x: expr, $y: expr) => {
-        Loc { x: $x, y: $y }
+        $crate::util::Loc { x: $x, y: $y }
     };
 }
 
+/// Create [std::collections::HashMap]'s using a readable syntax, similar to dicts in python or objects in js. Adapted from maplit to support `FxHashMap`
 #[macro_export]
 macro_rules! hashmap {
     (@single $($x:tt)*) => (());
@@ -63,6 +65,7 @@ macro_rules! hashmap {
     };
 }
 
+/// Create [std::collections::HashSet]'s using a readable syntax. Adapted from maplit to support `FxHashSet`
 #[macro_export]
 macro_rules! hashset {
     (@single $($x:tt)*) => (());
@@ -102,6 +105,7 @@ impl fmt::Debug for Loc {
     }
 }
 impl Loc {
+    /// Create a new `Loc`, shifted `x_diff` and `y_diff` away from the current pos
     pub fn copy_move_i32(&self, x_diff: i32, y_diff: i32) -> (Loc, bool) {
         let mut new_x = self.x as i32 + x_diff;
         let mut new_y = self.y as i32 + y_diff;
@@ -115,6 +119,7 @@ impl Loc {
         (loc!(new_x as usize, new_y as usize), false)
     }
 
+    /// Move the current pos by `x_diff` and `y_diff`
     pub fn move_i32(&mut self, x_diff: i32, y_diff: i32) -> bool {
         let new_x = self.x as i32 + x_diff;
         let new_y = self.y as i32 + y_diff;
@@ -130,6 +135,7 @@ impl Loc {
         true
     }
 
+    /// Get the location as chess notation IE (`(0, 0)` becomes `"A8"`)
     pub fn as_notation(&self) -> String {
         let x = char::from_u32(self.x as u32 + 97).unwrap();
         let y = match self.y {
@@ -146,6 +152,7 @@ impl Loc {
         format!("{}{}", x, y)
     }
 
+    /// Creates a `Loc` from a chess notation string IE (`"A8"` becomes `(0, 0)`)
     pub fn from_notation(notation: &str) -> Loc {
         let mut chars = notation.chars();
         let x = chars.next().unwrap() as u32 - 97;
@@ -164,19 +171,7 @@ impl Loc {
     }
 }
 
-#[test]
-fn test_notation() {
-    // Test Loc::as_notation
-    assert_eq!(loc!(0, 0).as_notation(), "a8");
-    assert_eq!(loc!(1, 0).as_notation(), "b8");
-    assert_eq!(loc!(2, 0).as_notation(), "c8");
-
-    // Test Loc::from_notation
-    assert_eq!(Loc::from_notation("a8"), loc!(0, 0));
-    assert_eq!(Loc::from_notation("b8"), loc!(1, 0));
-    assert_eq!(Loc::from_notation("c8"), loc!(2, 0));
-}
-
+/// Sees if a rectangle contains a point
 pub fn touches(point: (f32, f32), rect: (f32, f32, f32, f32)) -> bool {
     point.0 >= rect.0
         && point.0 <= rect.0 + rect.2
@@ -184,6 +179,7 @@ pub fn touches(point: (f32, f32), rect: (f32, f32, f32, f32)) -> bool {
         && point.1 <= rect.1 + rect.3
 }
 
+/// Write multiple lines of text that are automatically spaced
 pub fn multiline_text_ex(text: &str, x: f32, y: f32, params: TextParams) {
     let height = measure_text(text, Some(params.font), params.font_size, params.font_scale).height;
     for (i, line) in text.lines().enumerate() {
@@ -191,28 +187,17 @@ pub fn multiline_text_ex(text: &str, x: f32, y: f32, params: TextParams) {
     }
 }
 
-pub fn debug_print(highlights: &HashSet<Loc>) {
-    for y in 0..8 {
-        for x in 0..8 {
-            if highlights.contains(&loc!(x, y)) {
-                print!("x");
-            } else {
-                print!("-");
-            }
-        }
-        println!();
-    }
-}
-
+/// Get a random element from an array
 pub fn choose_array<T>(arr: &[T]) -> &T {
     let index = gen_range(0, arr.len());
     &arr[index]
 }
 
+/// If `cond` is `ChessColor::White`, then do `if_white`, else `if_black`
 #[macro_export]
 macro_rules! color_ternary {
     ($cond: expr, $if_white: expr, $if_black: expr) => {
-        if $cond == ChessColor::White {
+        if $cond == $crate::board::ChessColor::White {
             $if_white
         } else {
             $if_black
@@ -220,6 +205,19 @@ macro_rules! color_ternary {
     };
 }
 
+/// Shorthand for `if $cond { $true } else { $false }` or the ternary operator in C style languages
+#[macro_export]
+macro_rules! ternary {
+    ($cond: expr, $true: expr, $false: expr) => {
+        if $cond {
+            $true
+        } else {
+            $false
+        }
+    };
+}
+
+/// Creates a button that can be clicked
 pub struct Button {
     x: f32,
     y: f32,

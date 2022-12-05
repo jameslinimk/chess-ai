@@ -9,6 +9,7 @@ use super::queen::{queen_attacks, queen_moves};
 use super::rook::{rook_attacks, rook_moves};
 use crate::assets::get_image;
 use crate::board::{Board, ChessColor};
+use crate::board_eval::piece_value;
 use crate::color_ternary;
 use crate::util::Loc;
 
@@ -43,7 +44,7 @@ impl Piece {
                 let mut moves = king_moves(self, board);
                 moves.retain(|&to| {
                     let attacks =
-                        color_ternary!(self.color, &board.attack_black, &board.attack_white);
+                        color_ternary!(self.color, &board.attacks_black, &board.attacks_white);
                     !attacks.contains(&to)
                 });
                 moves
@@ -104,13 +105,6 @@ impl Piece {
 
     /// Get the piece value
     pub fn get_value(&self) -> i32 {
-        match self.name {
-            PieceNames::Pawn => 1,
-            PieceNames::Knight => 3,
-            PieceNames::Bishop => 3,
-            PieceNames::Rook => 5,
-            PieceNames::Queen => 9,
-            PieceNames::King => 100,
-        }
+        piece_value(&self.name)
     }
 }

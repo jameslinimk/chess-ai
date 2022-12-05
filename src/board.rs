@@ -1,11 +1,11 @@
 use derive_new::new;
 use rustc_hash::FxHashSet;
 
-use crate::conf::{CASTLE_VALUE, CHECKMATE_VALUE, CHECK_VALUE, STALEMATE_VALUE};
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::Loc;
 use crate::{color_ternary, hashset, loc};
 
+/// Black or white, the colors of chess
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum ChessColor {
     Black,
@@ -19,8 +19,16 @@ impl ChessColor {
             ChessColor::White => ChessColor::Black,
         }
     }
+
+    pub fn display(&self) -> &'static str {
+        match self {
+            ChessColor::Black => "black",
+            ChessColor::White => "white",
+        }
+    }
 }
 
+/// Board state IE (check, checkmate, etc)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BoardState {
     Normal,
@@ -31,12 +39,21 @@ pub enum BoardState {
     Stalemate,
 }
 
+/// Board that is stripped of non-vital information to compare two boards, used for 3fold repetition check
 #[derive(Clone, Copy, Debug, PartialEq, Eq, new)]
 pub struct SimpleBoard {
     pub raw: [[Option<Piece>; 8]; 8],
     pub castle_black: (bool, bool),
     pub castle_white: (bool, bool),
     pub en_passent: Option<(Loc, ChessColor)>,
+}
+impl PartialEq<Board> for SimpleBoard {
+    fn eq(&self, other: &Board) -> bool {
+        self.raw == other.raw
+            && self.castle_black == other.castle_black
+            && self.castle_white == other.castle_white
+            && self.en_passent == other.en_passent
+    }
 }
 
 /// Represents a chess board and metadata
@@ -50,17 +67,17 @@ pub struct Board {
     #[new(value = "ChessColor::White")]
     pub turn: ChessColor,
 
-    /// State of the board
+    /// State of the board IE (check, checkmate, etc)
     #[new(value = "BoardState::Normal")]
     pub state: BoardState,
 
     /// Player color
     #[new(value = "ChessColor::White")]
-    pub color_player: ChessColor,
+    pub player_color: ChessColor,
 
     /// Agent color
     #[new(value = "ChessColor::Black")]
-    pub color_agent: ChessColor,
+    pub agent_color: ChessColor,
 
     /// True if black can castle (queen side, king side)
     #[new(value = "(true, true)")]
@@ -80,11 +97,11 @@ pub struct Board {
 
     /// Which squares are under attack by white pieces
     #[new(value = "hashset! {}")]
-    pub attack_white: FxHashSet<Loc>,
+    pub attacks_white: FxHashSet<Loc>,
 
     /// Which squares are under attack by black pieces
     #[new(value = "hashset! {}")]
-    pub attack_black: FxHashSet<Loc>,
+    pub attacks_black: FxHashSet<Loc>,
 
     /// Wether the white king is in check
     #[new(value = "false")]
@@ -94,7 +111,7 @@ pub struct Board {
     #[new(value = "false")]
     pub check_black: bool,
 
-    /// Pieces that block attackers
+    /// Pieces that block any attackers
     #[new(value = "hashset! {}")]
     pub blockers: FxHashSet<Loc>,
 
@@ -106,21 +123,28 @@ pub struct Board {
     #[new(value = "vec![]")]
     pub moves_black: Vec<(Loc, Loc)>,
 
+    /// Number of half moves (+1 per white *or* black turn)
+    /// - Use `Board.full_moves()` for full moves
     #[new(value = "0")]
     pub half_moves: u32,
 
+    /// Previous board states, used for 3fold check
     #[new(value = "[None; 12]")]
     pub prev_states: [Option<SimpleBoard>; 12],
 
     /// Updates on piece capture or pawn move
     #[new(value = "0")]
     pub fifty_rule: u32,
+
+    /// Wether the game is endgame or not
+    #[new(value = "false")]
+    pub endgame: bool,
 }
 impl Board {
     /// Moves the piece in `from` to `to`
     pub fn move_piece(&mut self, from: &Loc, to: &Loc, check_stale: bool) -> bool {
         // Moving piece
-        let capture = self.move_actions(from, to);
+        self.move_actions(from, to);
         self.move_raw(from, to);
 
         // Update turn
@@ -135,6 +159,7 @@ impl Board {
         self.prev_states[0] = Some(self.as_simple());
 
         // Fifty move rule (pawn move is done in move_actions)
+        let (capture, _) = self.is_capture(from, to);
         if capture {
             self.fifty_rule = self.half_moves;
         }
@@ -145,20 +170,21 @@ impl Board {
         capture
     }
 
+    /// Updates "things", such as the game state, checks, attacks, etc. Auto called by `move_piece`
     pub fn update_things(&mut self, check_stale: bool) {
         // Update attacks (relies on nothing)
-        self.attack_white = self.get_attacks(ChessColor::White);
-        self.attack_black = self.get_attacks(ChessColor::Black);
+        self.attacks_white = self.get_attacks(ChessColor::White);
+        self.attacks_black = self.get_attacks(ChessColor::Black);
 
         // Update check (relies on attacks)
         let (white_king, black_king) = self.get_kings();
         if let Some(white_king) = white_king {
-            self.check_white = self.attack_black.contains(&white_king);
+            self.check_white = self.attacks_black.contains(&white_king);
         } else {
             self.check_white = true;
         }
         if let Some(black_king) = black_king {
-            self.check_black = self.attack_white.contains(&black_king);
+            self.check_black = self.attacks_white.contains(&black_king);
         } else {
             self.check_black = true;
         }
@@ -175,21 +201,40 @@ impl Board {
         // Detect state (relies on check and moves)
         self.detect_state(check_stale);
 
-        // Set score (relies on state)
+        // Set endgame (relies on nothing)
+        self.endgame = {
+            let mut queens = 0;
+            let mut minors = 0;
+
+            for row in self.raw.iter() {
+                for piece in row.iter().flatten() {
+                    match piece.name {
+                        PieceNames::Bishop | PieceNames::Knight => minors += 1,
+                        PieceNames::Queen => queens += 1,
+                        _ => {}
+                    }
+                }
+            }
+
+            queens == 0 || (queens == 2 && minors <= 1)
+        };
+
+        // Set score (relies on state, endgame)
         self.score = self.get_score();
     }
 
     /// Detect wether the players are in check, checkmate or stalemate
     fn detect_state(&mut self, check_stale: bool) {
+        // Fifty move rule
         if self.half_moves - self.fifty_rule >= 50 {
             self.state = BoardState::Stalemate;
             return;
         }
 
+        // 3fold repetition
         let mut sum = 0;
-        let self_simple = self.as_simple();
         for simple in self.prev_states.iter().flatten() {
-            if simple == &self_simple {
+            if simple == self {
                 sum += 1;
                 if sum >= 3 {
                     self.state = BoardState::Stalemate;
@@ -198,6 +243,7 @@ impl Board {
             }
         }
 
+        // Others
         match (self.check_white, self.check_black) {
             (true, false) => {
                 if self.moves_white.is_empty() {
@@ -230,34 +276,17 @@ impl Board {
         };
     }
 
-    /// Returns a tuple of the locations of the kings (white, black)
-    fn get_kings(&self) -> (Option<Loc>, Option<Loc>) {
-        let mut white_king = None;
-        let mut black_king = None;
-        for row in self.raw.iter() {
-            for piece in row.iter().flatten() {
-                if piece.name == PieceNames::King {
-                    color_ternary!(
-                        piece.color,
-                        white_king = Some(piece.pos),
-                        black_king = Some(piece.pos)
-                    );
-                }
-            }
-        }
-        (white_king, black_king)
-    }
-
+    /// Updates `self.blockers`
     fn update_blockers(&mut self) {
         self.blockers = hashset! {};
-        for loc in self.attack_white.iter() {
+        for loc in self.attacks_white.iter() {
             if let Some(piece) = self.get(loc) {
                 if piece.color == ChessColor::Black {
                     self.blockers.insert(*loc);
                 }
             }
         }
-        for loc in self.attack_black.iter() {
+        for loc in self.attacks_black.iter() {
             if let Some(piece) = self.get(loc) {
                 if piece.color == ChessColor::White {
                     self.blockers.insert(*loc);
@@ -266,29 +295,34 @@ impl Board {
         }
     }
 
-    pub fn get_attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
-        let mut attacks = hashset! {};
-        for row in self.raw.iter() {
-            for piece in row.iter().flatten() {
-                if piece.color == color {
-                    attacks.extend(piece.get_attacks(self));
-                }
-            }
-        }
-        attacks
-    }
-
     // Move the piece in `from` to `to` without updating anything
     fn move_raw(&mut self, from: &Loc, to: &Loc) {
         self.set(to, self.get(from));
         self.set(from, None);
     }
 
+    pub fn is_capture(&self, from: &Loc, to: &Loc) -> (bool, Loc) {
+        if self.get(to).is_some() {
+            return (true, *to);
+        }
+
+        if let Some(piece) = self.get(from) {
+            if piece.name == PieceNames::Pawn && from.x.abs_diff(to.x) == 1 {
+                if let Some((loc, color)) = self.en_passent {
+                    if to.x == loc.x && to.y.abs_diff(loc.y) == 1 && piece.color != color {
+                        return (true, loc);
+                    }
+                }
+            };
+        };
+
+        (false, loc!(0, 0))
+    }
+
     /// Special actions that happen when moving a piece
     /// - IE: Castling, en passent, pawn promotion, etc...
-    fn move_actions(&mut self, from: &Loc, to: &Loc) -> bool {
+    fn move_actions(&mut self, from: &Loc, to: &Loc) {
         let mut set_en_passent = false;
-        let mut capture = self.get(to).is_some();
 
         if let Some(piece) = self.raw[from.y][from.x].as_mut() {
             piece.pos = *to;
@@ -337,7 +371,6 @@ impl Board {
                         if let Some((loc, color)) = self.en_passent {
                             if to.x == loc.x && to.y.abs_diff(loc.y) == 1 && piece.color != color {
                                 self.set(&loc, None);
-                                capture = true;
                             }
                         }
                     }
@@ -353,54 +386,5 @@ impl Board {
         if !set_en_passent && self.en_passent.is_some() {
             self.en_passent = None;
         }
-
-        capture
-    }
-
-    /// Calculates the score of the board, for the color specified
-    fn get_score(&self) -> i32 {
-        match self.state {
-            BoardState::Checkmate(check_color) => {
-                return color_ternary!(check_color, -CHECKMATE_VALUE, CHECKMATE_VALUE);
-            }
-            BoardState::Stalemate => return STALEMATE_VALUE,
-            _ => {}
-        }
-
-        let mut score = 0;
-
-        // Add value based on pieces
-        for row in self.raw.iter() {
-            for piece in row.iter().flatten() {
-                color_ternary!(
-                    piece.color,
-                    score += piece.get_value(),
-                    score -= piece.get_value()
-                );
-            }
-        }
-
-        for (castle, color) in [
-            (self.castle_white, ChessColor::White),
-            (self.castle_black, ChessColor::Black),
-        ]
-        .iter()
-        {
-            let subtract = color_ternary!(*color, 1, -1);
-
-            // Add value based on castling
-            if castle.0 {
-                score += CASTLE_VALUE * subtract;
-            }
-            if castle.1 {
-                score += CASTLE_VALUE * subtract;
-            }
-        }
-
-        if let BoardState::Check(check_color) = self.state {
-            color_ternary!(check_color, score -= CHECK_VALUE, score += CHECK_VALUE);
-        }
-
-        score
     }
 }

@@ -1,3 +1,8 @@
+//! All chess piece implementations
+//!
+//! - Get all legal moves
+//! - Get squares piece can attack
+
 pub mod bishop;
 pub mod king;
 pub mod knight;

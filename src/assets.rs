@@ -1,3 +1,5 @@
+//! Helper functions for storing and loading `Texture2D`s and `Sound`s in sync code
+
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;

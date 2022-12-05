@@ -1,12 +1,17 @@
-use macroquad::prelude::WHITE;
+//! Part of [Board], split for readability
+//!
+//! Extra fen and util functions for [Board]
+
+use macroquad::prelude::{info, WHITE};
 use macroquad::shapes::{draw_circle, draw_rectangle};
 use macroquad::texture::draw_texture;
+use rustc_hash::FxHashSet;
 
 use crate::board::{Board, BoardState, ChessColor, SimpleBoard};
 use crate::conf::{COLOR_BLACK, COLOR_SELECTED, COLOR_WHITE, MARGIN, SQUARE_SIZE};
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::{validate_fen, Loc};
-use crate::{color_ternary, loc};
+use crate::{color_ternary, hashset, loc};
 
 #[inline(always)]
 fn name_to_fen(name: &PieceNames) -> char {
@@ -242,7 +247,7 @@ impl Board {
                 match piece {
                     Some(p) => {
                         let first_char = format!("{:?}", p.name).chars().next().unwrap();
-                        print!(
+                        info!(
                             "{}",
                             match p.color {
                                 ChessColor::White => first_char.to_uppercase().to_string(),
@@ -250,22 +255,44 @@ impl Board {
                             }
                         )
                     }
-                    None => print!("-"),
+                    None => info!("-"),
                 }
             }
-            println!();
+            info!("");
         }
     }
 
+    /// Returns a tuple of the locations of the kings (white, black)
+    pub fn get_kings(&self) -> (Option<Loc>, Option<Loc>) {
+        let mut white_king = None;
+        let mut black_king = None;
+        for row in self.raw.iter() {
+            for piece in row.iter().flatten() {
+                if piece.name == PieceNames::King {
+                    color_ternary!(
+                        piece.color,
+                        white_king = Some(piece.pos),
+                        black_king = Some(piece.pos)
+                    );
+                }
+            }
+        }
+        (white_king, black_king)
+    }
+
+    pub fn get_attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
+        let mut attacks = hashset! {};
+        for row in self.raw.iter() {
+            for piece in row.iter().flatten() {
+                if piece.color == color {
+                    attacks.extend(piece.get_attacks(self));
+                }
+            }
+        }
+        attacks
+    }
+
     /* ----------------------------- Util functions ----------------------------- */
-    pub fn player_turn(&self) -> bool {
-        self.turn == self.color_player
-    }
-
-    pub fn agent_turn(&self) -> bool {
-        self.turn == self.color_agent
-    }
-
     pub fn get(&self, loc: &Loc) -> Option<Piece> {
         self.raw[loc.y][loc.x]
     }
@@ -296,37 +323,6 @@ impl Board {
         matches!(self.state, BoardState::Checkmate(_) | BoardState::Stalemate)
     }
 
-    pub fn copy_board(&self) -> Board {
-        let mut board = Board::new();
-
-        macro_rules! copy {
-            ($($x:ident,)*) => {
-                $(
-                    board.$x = self.$x;
-                )*
-            };
-        }
-
-        copy! {
-            raw,
-            turn,
-            state,
-            color_player,
-            color_agent,
-            castle_black,
-            castle_white,
-            en_passent,
-            score,
-            check_white,
-            check_black,
-            half_moves,
-            prev_states,
-            fifty_rule,
-        }
-
-        board
-    }
-
     pub fn as_simple(&self) -> SimpleBoard {
         SimpleBoard {
             raw: self.raw,
@@ -335,34 +331,4 @@ impl Board {
             en_passent: self.en_passent,
         }
     }
-}
-
-#[test]
-fn test_fen() {
-    // Test fen stuff
-    let board = Board::from_fen(crate::conf::DEFAULT_FEN);
-    let fen = board.as_fen();
-    assert_eq!(
-        fen,
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    );
-    let board2 = Board::from_fen(&fen);
-    assert_eq!(board, board2);
-
-    // Test moves
-    let moves = board.get_moves(ChessColor::White);
-    assert_eq!(moves.len(), 20);
-
-    // Test copy board
-    let mut board3 = board.copy_board();
-    board3.move_piece(&loc!(1, 1), &loc!(3, 3), true);
-    assert_ne!(board, board3);
-
-    // Test checkmate
-    board3 = board.copy_board();
-    board3.move_piece(&loc!(6, 4), &loc!(4, 4), true);
-    board3.move_piece(&loc!(1, 4), &loc!(3, 4), true);
-    board3.move_piece(&loc!(6, 5), &loc!(4, 5), true);
-    board3.move_piece(&loc!(0, 3), &loc!(4, 7), true);
-    assert_eq!(board3.state, BoardState::Checkmate(ChessColor::White));
 }

@@ -63,7 +63,7 @@ pub fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
                     piece.pos.copy_move_i32(1, direction).0,
                     &mut moves,
                 );
-            } else if en_passent.0.x == piece.pos.x - 1 {
+            } else if piece.pos.x != 0 && en_passent.0.x == piece.pos.x - 1 {
                 add(
                     board,
                     &piece.color,

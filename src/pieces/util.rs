@@ -1,3 +1,8 @@
+//! Helper functions for creating pieces
+//!
+//! - Static pieces are pieces that have set moves and can take or go to a place
+//! - Directional pieces are pieces that slide on the board and can take or move in rays
+
 use super::piece::Piece;
 use crate::board::{Board, ChessColor};
 use crate::util::Loc;
@@ -25,6 +30,7 @@ pub fn add_ff(location: Loc, moves: &mut Vec<Loc>) {
     }
 }
 
+/// Get all moves for static pieces
 pub fn static_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
@@ -37,6 +43,7 @@ pub fn static_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> 
     moves
 }
 
+/// Get all attack squares for static pieces
 pub fn static_attacks(piece: &Piece, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
@@ -49,10 +56,14 @@ pub fn static_attacks(piece: &Piece, directions: &[(i32, i32)]) -> Vec<Loc> {
     moves
 }
 
+/// Get all moves for directional pieces
 pub fn directional_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
-        let mut loc = piece.pos.copy_move_i32(*x, *y).0;
+        let (mut loc, out) = piece.pos.copy_move_i32(*x, *y);
+        if out {
+            continue;
+        }
         while valid_pos(&loc) {
             if let Some(capture) = board.get(&loc) {
                 if capture.color != piece.color {
@@ -70,10 +81,14 @@ pub fn directional_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]
     moves
 }
 
+/// Get all attack squares for directional pieces
 pub fn directional_attacks(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
-        let mut loc = piece.pos.copy_move_i32(*x, *y).0;
+        let (mut loc, out) = piece.pos.copy_move_i32(*x, *y);
+        if out {
+            continue;
+        }
         while valid_pos(&loc) {
             if board.get(&loc).is_some() {
                 moves.push(loc);
