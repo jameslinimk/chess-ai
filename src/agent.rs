@@ -76,10 +76,10 @@ fn minimax(
                 best_move = Some((*from, *to));
             }
 
-            // alpha = alpha.max(max_score);
-            // if beta <= alpha {
-            //     break;
-            // }
+            alpha = alpha.max(max_score);
+            if beta < alpha {
+                break;
+            }
         }
 
         (max_score, best_move)
@@ -98,10 +98,10 @@ fn minimax(
                 best_move = Some((*from, *to));
             }
 
-            // beta = beta.min(min_score);
-            // if beta <= alpha {
-            //     break;
-            // }
+            beta = beta.min(min_score);
+            if beta < alpha {
+                break;
+            }
         }
 
         (min_score, best_move)

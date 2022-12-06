@@ -17,7 +17,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use conf::{COLOR_BACKGROUND, HEIGHT, WIDTH};
 use game::Game;
-use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::{next_frame, Conf};
 use macroquad::rand::srand;
 use macroquad::text::Font;
@@ -40,11 +39,6 @@ fn config() -> Conf {
         window_width: WIDTH,
         window_height: HEIGHT,
         window_resizable: false,
-        icon: Some(Icon {
-            small: include_bytes!("../assets/icon-16.png"),
-            medium: todo!(),
-            big: todo!(),
-        }),
         ..Default::default()
     }
 }

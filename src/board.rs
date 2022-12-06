@@ -370,6 +370,7 @@ impl Board {
                             _ => panic!(),
                         };
 
+                        self.raw[rook_from.y][rook_from.x].as_mut().unwrap().pos = rook_to;
                         self.move_raw(&rook_from, &rook_to);
                     }
                 }

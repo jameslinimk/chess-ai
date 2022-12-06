@@ -138,6 +138,8 @@ impl Game {
                 info!("Waiting on agent...");
             } else if let Some(board) = self.board_history.pop() {
                 self.board = board;
+                self.selected = None;
+                self.highlight = vec![];
             }
         }
     }
