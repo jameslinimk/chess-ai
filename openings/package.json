@@ -1,0 +1,6 @@
+{
+	"devDependencies": {
+		"@types/node": "^18.11.11"
+	},
+	"type": "module"
+}

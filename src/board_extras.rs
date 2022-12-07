@@ -2,83 +2,24 @@
 //!
 //! Extra fen and util functions for [Board]
 
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
+
 use macroquad::prelude::{info, WHITE};
-use macroquad::shapes::{draw_circle, draw_rectangle};
+use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_triangle};
 use macroquad::texture::draw_texture;
 use rustc_hash::FxHashSet;
 
 use crate::board::{Board, BoardState, ChessColor, SimpleBoard};
-use crate::conf::{COLOR_BLACK, COLOR_LAST_MOVE, COLOR_SELECTED, COLOR_WHITE, MARGIN, SQUARE_SIZE};
+use crate::conf::{
+    COLOR_ARROW, COLOR_BLACK, COLOR_HIGHLIGHT, COLOR_LAST_MOVE, COLOR_SELECTED, COLOR_WHITE,
+    MARGIN, SQUARE_SIZE,
+};
 use crate::pieces::piece::{Piece, PieceNames};
-use crate::util::{validate_fen, Loc, Tween};
+use crate::util::{angle, board_to_pos_center, project, validate_fen, Loc, Tween};
 use crate::{color_ternary, hashset, loc};
 
-const ENUMERATES: [(usize, usize); 64] = [
-    (0, 0),
-    (1, 0),
-    (2, 0),
-    (3, 0),
-    (4, 0),
-    (5, 0),
-    (6, 0),
-    (7, 0),
-    (0, 1),
-    (1, 1),
-    (2, 1),
-    (3, 1),
-    (4, 1),
-    (5, 1),
-    (6, 1),
-    (7, 1),
-    (0, 2),
-    (1, 2),
-    (2, 2),
-    (3, 2),
-    (4, 2),
-    (5, 2),
-    (6, 2),
-    (7, 2),
-    (0, 3),
-    (1, 3),
-    (2, 3),
-    (3, 3),
-    (4, 3),
-    (5, 3),
-    (6, 3),
-    (7, 3),
-    (0, 4),
-    (1, 4),
-    (2, 4),
-    (3, 4),
-    (4, 4),
-    (5, 4),
-    (6, 4),
-    (7, 4),
-    (0, 5),
-    (1, 5),
-    (2, 5),
-    (3, 5),
-    (4, 5),
-    (5, 5),
-    (6, 5),
-    (7, 5),
-    (0, 6),
-    (1, 6),
-    (2, 6),
-    (3, 6),
-    (4, 6),
-    (5, 6),
-    (6, 6),
-    (7, 6),
-    (0, 7),
-    (1, 7),
-    (2, 7),
-    (3, 7),
-    (4, 7),
-    (5, 7),
-    (6, 7),
-    (7, 7),
-];
+#[rustfmt::skip]
+const ENUMERATES: [(usize, usize); 64] = [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (0, 1), (1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1), (0, 2), (1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2), (0, 3), (1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3), (7, 3), (0, 4), (1, 4), (2, 4), (3, 4), (4, 4), (5, 4), (6, 4), (7, 4), (0, 5), (1, 5), (2, 5), (3, 5), (4, 5), (5, 5), (6, 5), (7, 5), (0, 6), (1, 6), (2, 6), (3, 6), (4, 6), (5, 6), (6, 6), (7, 6), (0, 7), (1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7), (7, 7)];
 
 impl Board {
     /// Generate a new board given a FEN string
@@ -265,16 +206,25 @@ impl Board {
     /// Draws the board to the screen
     pub fn draw(
         &self,
-        highlight: &[Loc],
+        highlight_moves: &[Loc],
         last_move: &Option<(Loc, Loc)>,
+        highlights: &FxHashSet<Loc>,
+        arrows: &[(Loc, Loc)],
         current_tween: &mut Option<(Loc, Tween)>,
     ) {
         for (x, y) in ENUMERATES {
-            let color = if (x + y) % 2 == 0 {
+            let mut color = if (x + y) % 2 == 0 {
                 COLOR_WHITE
             } else {
                 COLOR_BLACK
             };
+
+            if let Some(last_move) = last_move {
+                if last_move.0 == loc!(x, y) || last_move.1 == loc!(x, y) {
+                    color = COLOR_LAST_MOVE;
+                }
+            }
+
             draw_rectangle(
                 MARGIN + SQUARE_SIZE * x as f32,
                 MARGIN + SQUARE_SIZE * y as f32,
@@ -282,20 +232,8 @@ impl Board {
                 SQUARE_SIZE,
                 color,
             );
-
-            // Draw last move
-            if let Some(last_move) = last_move {
-                if last_move.0 == loc!(x, y) || last_move.1 == loc!(x, y) {
-                    draw_rectangle(
-                        MARGIN + SQUARE_SIZE * x as f32,
-                        MARGIN + SQUARE_SIZE * y as f32,
-                        SQUARE_SIZE,
-                        SQUARE_SIZE,
-                        COLOR_LAST_MOVE,
-                    );
-                }
-            }
         }
+
         for (y, row) in self.raw.iter().enumerate() {
             for (x, square) in row.iter().enumerate() {
                 // Draw piece
@@ -328,7 +266,7 @@ impl Board {
 
         for (x, y) in ENUMERATES {
             // Draw highlight
-            if highlight.contains(&loc!(x, y)) {
+            if highlight_moves.contains(&loc!(x, y)) {
                 draw_circle(
                     MARGIN + SQUARE_SIZE * x as f32 + SQUARE_SIZE / 2.0,
                     MARGIN + SQUARE_SIZE * y as f32 + SQUARE_SIZE / 2.0,
@@ -336,6 +274,39 @@ impl Board {
                     COLOR_SELECTED,
                 );
             }
+
+            if highlights.contains(&loc!(x, y)) {
+                draw_circle_lines(
+                    MARGIN + SQUARE_SIZE * x as f32 + SQUARE_SIZE / 2.0,
+                    MARGIN + SQUARE_SIZE * y as f32 + SQUARE_SIZE / 2.0,
+                    SQUARE_SIZE / 2.0 - 2.5,
+                    5.0,
+                    COLOR_HIGHLIGHT,
+                );
+            }
+        }
+
+        for arrow in arrows.iter() {
+            let start = board_to_pos_center(&arrow.0);
+            let end = board_to_pos_center(&arrow.1);
+            let angle = angle(start, end);
+
+            let left_angle = (angle - FRAC_PI_2 - FRAC_PI_4) % (2.0 * PI);
+            let left_point = project(end, left_angle, 25.0);
+
+            let right_angle = (angle + FRAC_PI_2 + FRAC_PI_4) % (2.0 * PI);
+            let right_point = project(end, right_angle, 25.0);
+
+            let new_end = project(end, angle, 5.0);
+
+            draw_line(start.0, start.1, end.0, end.1, 10.0, COLOR_ARROW);
+            draw_circle(start.0, start.1, 5.0, COLOR_ARROW);
+            draw_triangle(
+                new_end.into(),
+                left_point.into(),
+                right_point.into(),
+                COLOR_ARROW,
+            );
         }
     }
 
@@ -419,7 +390,10 @@ impl Board {
     }
 
     pub fn is_over(&self) -> bool {
-        matches!(self.state, BoardState::Checkmate(_) | BoardState::Stalemate)
+        matches!(
+            self.state,
+            BoardState::Checkmate(_) | BoardState::Stalemate | BoardState::Draw
+        )
     }
 
     pub fn as_simple(&self) -> SimpleBoard {

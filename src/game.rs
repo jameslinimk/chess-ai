@@ -4,21 +4,23 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use derive_new::new;
 use macroquad::audio::{play_sound, PlaySoundParams};
 use macroquad::prelude::{
-    info, is_key_pressed, is_mouse_button_pressed, mouse_position, KeyCode, MouseButton,
-    TextParams, WHITE,
+    info, is_key_pressed, is_mouse_button_down, is_mouse_button_pressed, mouse_position, KeyCode,
+    MouseButton, TextParams, WHITE,
 };
 use macroquad::shapes::draw_rectangle;
 use macroquad::text::measure_text;
+use rustc_hash::FxHashSet;
 
 use crate::agent::{Agent, AGENTS};
 use crate::assets::get_audio;
 use crate::board::{Board, BoardState};
 use crate::conf::{
-    COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN, SQUARE_SIZE, TEST_FEN, WASM, WIDTH,
+    CENTER_HEIGHT, CENTER_WIDTH, COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN,
+    SQUARE_SIZE, TEST_FEN, WASM,
 };
 use crate::pieces::piece::Piece;
-use crate::util::{multiline_text_ex, touches, Button, Loc, Tween};
-use crate::{get_font, loc, ternary};
+use crate::util::{multiline_text_ex, pos_to_board, Button, Loc, Tween};
+use crate::{get_font, hashset, ternary};
 
 #[derive(new)]
 pub struct Game {
@@ -32,7 +34,7 @@ pub struct Game {
     pub selected: Option<Piece>,
 
     #[new(value = "vec![]")]
-    pub highlight: Vec<Loc>,
+    pub highlight_moves: Vec<Loc>,
 
     #[new(value = "Agent::Minimax")]
     pub agent: Agent,
@@ -67,30 +69,26 @@ pub struct Game {
     #[new(value = "None")]
     pub current_tween: Option<(Loc, Tween)>,
 
+    #[new(value = "vec![]")]
+    pub arrows: Vec<(Loc, Loc)>,
+
+    #[new(value = "None")]
+    pub drag_start: Option<Loc>,
+
+    #[new(value = "None")]
+    pub drag_end: Option<Loc>,
+
+    #[new(value = "hashset!{}")]
+    pub highlights: FxHashSet<Loc>,
+
     #[new(value = "unbounded()")]
     #[allow(clippy::type_complexity)]
     pub agent_channel: (Sender<Option<(Loc, Loc)>>, Receiver<Option<(Loc, Loc)>>),
 }
 impl Game {
-    fn get_clicked_square(&self) -> Option<Loc> {
-        if is_mouse_button_pressed(MouseButton::Left) {
-            for (y, row) in self.board.raw.iter().enumerate() {
-                for (x, _) in row.iter().enumerate() {
-                    let top_left = loc!(
-                        MARGIN as usize + SQUARE_SIZE as usize * x,
-                        MARGIN as usize + SQUARE_SIZE as usize * y
-                    );
-                    let size = SQUARE_SIZE;
-
-                    // See if mouse intersects with rectangle
-                    if touches(
-                        mouse_position(),
-                        (top_left.x as f32, top_left.y as f32, size, size),
-                    ) {
-                        return Some(loc!(x, y));
-                    }
-                }
-            }
+    fn get_clicked_square(&self, button: MouseButton) -> Option<Loc> {
+        if is_mouse_button_pressed(button) {
+            return pos_to_board(mouse_position());
         }
 
         None
@@ -104,7 +102,9 @@ impl Game {
 
         let capture = self.board.move_piece(from, to, true);
         self.selected = None;
-        self.highlight = vec![];
+        self.highlight_moves.clear();
+        self.highlights.clear();
+        self.arrows.clear();
         self.last_move = Some((*from, *to));
         self.current_tween = Some((*to, Tween::new(from.as_tuple(), to.as_tuple(), 20.0)));
 
@@ -150,8 +150,14 @@ impl Game {
                 self.board = board;
                 self.selected = None;
                 self.last_move = last_move;
-                self.highlight = vec![];
+                self.highlight_moves.clear();
+                self.highlights.clear();
+                self.arrows.clear();
             }
+        }
+        if is_key_pressed(KeyCode::C) {
+            self.highlights.clear();
+            self.arrows.clear();
         }
     }
 
@@ -167,7 +173,7 @@ impl Game {
     fn draw_ui(&self) {
         multiline_text_ex(
             &format!(
-                "Agent: {:?}\nTurn: {:?}\nScore: {}\n\n{}Keybinds:\nR-Reset\nL-Last move",
+                "Agent: {:?}\nTurn: {:?}\nScore: {}\n\n{}Keybinds:\nR-Reset\nL-Last move\nC-Clear",
                 self.agent,
                 self.board.turn,
                 self.board.score,
@@ -197,6 +203,7 @@ impl Game {
                 "Dang, you lost\nPress \"r\" to restart!"
             ),
             BoardState::Stalemate => "Game over, stalemate\nPress \"r\" to restart!",
+            BoardState::Draw => "Game over, draw\nPress \"r\" to restart!",
             _ => panic!(),
         };
 
@@ -208,49 +215,90 @@ impl Game {
             ..Default::default()
         };
 
-        let dims = measure_text(
-            message.lines().next().unwrap(),
-            Some(params.font),
-            params.font_size,
-            params.font_scale,
-        );
+        let mut width = 0.0;
+        let mut height = 0.0;
+        for line in message.lines() {
+            let dims = measure_text(line, Some(params.font), params.font_size, params.font_scale);
+            width = dims.width.max(width);
+            height += dims.height;
+        }
 
         draw_rectangle(
-            0.0,
-            (HEIGHT / 2) as f32 - dims.height / 2.0 - MARGIN / 2.0,
-            WIDTH as f32,
-            dims.height * 2.0 + MARGIN,
+            CENTER_WIDTH as f32 - width / 2.0 - MARGIN / 2.0,
+            CENTER_HEIGHT as f32 - height / 2.0 - MARGIN / 4.0,
+            width + MARGIN,
+            height + MARGIN,
             WHITE,
         );
 
         multiline_text_ex(
             message,
-            (WIDTH / 2) as f32 - dims.width / 2.0,
-            (HEIGHT / 2) as f32 - dims.height / 2.0,
+            (CENTER_WIDTH) as f32 - width / 2.0,
+            (CENTER_HEIGHT) as f32 - height / 2.0,
             params,
         );
+    }
+
+    pub fn update_arrows_highlights(&mut self) {
+        if is_mouse_button_down(MouseButton::Right) {
+            if self.drag_start.is_none() {
+                self.drag_start = pos_to_board(mouse_position());
+                return;
+            }
+
+            let pos = pos_to_board(mouse_position());
+            if self.drag_start != pos {
+                self.drag_end = pos;
+            }
+        } else {
+            if let (Some(start), Some(end)) = (self.drag_start, self.drag_end) {
+                let index = self.arrows.iter().position(|&arrow| arrow == (start, end));
+                if let Some(i) = index {
+                    self.arrows.remove(i);
+                } else {
+                    self.arrows.push((start, end));
+                }
+            }
+
+            if let Some(start) = self.drag_start {
+                if self.drag_end.is_none() {
+                    if self.highlights.contains(&start) {
+                        self.highlights.remove(&start);
+                    } else {
+                        self.highlights.insert(start);
+                    }
+                }
+            }
+
+            self.drag_start = None;
+            self.drag_end = None;
+        }
     }
 
     pub fn update(&mut self) {
         self.update_keys();
         self.update_buttons();
+        self.update_arrows_highlights();
 
         if self.board.turn == self.board.player_color {
-            if let Some(clicked) = self.get_clicked_square() {
+            if let Some(clicked) = self.get_clicked_square(MouseButton::Left) {
                 // Click same place
                 if self.selected.is_some() && self.selected.unwrap().pos == clicked {
                     self.selected = None;
-                    self.highlight = vec![];
+                    self.highlight_moves.clear();
                 // Move (Clicked highlighted piece)
-                } else if self.highlight.contains(&clicked) {
+                } else if self.highlight_moves.contains(&clicked) {
                     self.move_piece(&self.selected.unwrap().pos, &clicked);
                     // Clicked a new place
                 } else if let Some(piece) = self.board.get(&clicked) {
                     if piece.color == self.board.turn {
                         self.selected = Some(piece);
-                        self.highlight = self.selected.unwrap().get_moves(&self.board);
+                        self.highlight_moves = self.selected.unwrap().get_moves(&self.board);
                     }
                 }
+
+                self.highlights.clear();
+                self.arrows.clear();
             }
         } else if self.waiting_on_agent {
             if let Ok(mov) = self.agent_channel.1.try_recv() {
@@ -274,8 +322,13 @@ impl Game {
         }
 
         // Drawing
-        self.board
-            .draw(&self.highlight, &self.last_move, &mut self.current_tween);
+        self.board.draw(
+            &self.highlight_moves,
+            &self.last_move,
+            &self.highlights,
+            &self.arrows,
+            &mut self.current_tween,
+        );
         self.draw_ui();
 
         if self.board.is_over() {

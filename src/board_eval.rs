@@ -221,7 +221,7 @@ impl Board {
             BoardState::Checkmate(check_color) => {
                 return color_ternary!(check_color, -CHECKMATE_VALUE, CHECKMATE_VALUE);
             }
-            BoardState::Stalemate => {
+            BoardState::Stalemate | BoardState::Draw => {
                 return STALEMATE_VALUE;
             }
             _ => {}

@@ -15,6 +15,7 @@ lazy_static! {
     static ref AUDIO_MAP: Mutex<FxHashMap<String, Sound>> = Mutex::new(hashmap! {});
 }
 
+/// Get an previously loaded image from the asset map
 pub fn get_image(path: &str) -> Texture2D {
     match ASSET_MAP.lock().unwrap().get(path) {
         Some(texture) => texture.to_owned(),
@@ -22,6 +23,7 @@ pub fn get_image(path: &str) -> Texture2D {
     }
 }
 
+/// Load an image path into the asset map
 pub async fn load_image(path: &str) -> Texture2D {
     if ASSET_MAP.lock().unwrap().contains_key(path) {
         return get_image(path);
@@ -35,6 +37,7 @@ pub async fn load_image(path: &str) -> Texture2D {
     resource
 }
 
+/// Load image bytes into the asset map
 pub async fn load_image_from_bytes(path: &str, bytes: &[u8]) -> Texture2D {
     if ASSET_MAP.lock().unwrap().contains_key(path) {
         return get_image(path);
@@ -48,6 +51,7 @@ pub async fn load_image_from_bytes(path: &str, bytes: &[u8]) -> Texture2D {
     resource
 }
 
+/// Get an previously loaded audio file from the audio map
 pub fn get_audio(path: &str) -> Sound {
     match AUDIO_MAP.lock().unwrap().get(path) {
         Some(texture) => texture.to_owned(),
@@ -55,6 +59,7 @@ pub fn get_audio(path: &str) -> Sound {
     }
 }
 
+/// Load an audio file into the audio map
 pub async fn load_audio(path: &str) -> Sound {
     if AUDIO_MAP.lock().unwrap().contains_key(path) {
         return get_audio(path);
@@ -67,6 +72,7 @@ pub async fn load_audio(path: &str) -> Sound {
     resource
 }
 
+/// Load audio bytes into the audio map
 pub async fn load_audio_from_bytes(path: &str, bytes: &[u8]) -> Sound {
     if AUDIO_MAP.lock().unwrap().contains_key(path) {
         return get_audio(path);

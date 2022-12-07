@@ -10,7 +10,9 @@ use macroquad::shapes::draw_rectangle;
 use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
 use macroquad::time::get_frame_time;
 
-use crate::conf::{COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE};
+use crate::conf::{
+    COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE, MARGIN, SQUARE_SIZE,
+};
 use crate::get_font;
 
 /// Makes sure the board part of fen is valid, doesn't check if there are 5 kings, 500 pawns, etc
@@ -87,17 +89,8 @@ macro_rules! hashset {
     };
 }
 
-macro_rules! clamp_negative {
-    ($number: expr) => {
-        if $number.is_negative() {
-            0
-        } else {
-            $number
-        }
-    };
-}
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+/// A Vec2 with usize values and utility functions for chess board stuff
 pub struct Loc {
     pub x: usize,
     pub y: usize,
@@ -114,8 +107,8 @@ impl Loc {
         let mut new_y = self.y as i32 + y_diff;
 
         if new_x < 0 || new_y < 0 {
-            new_x = clamp_negative!(new_x);
-            new_y = clamp_negative!(new_y);
+            new_x = new_x.clamp(0, i32::MAX);
+            new_y = new_y.clamp(0, i32::MAX);
             return (loc!(new_x as usize, new_y as usize), true);
         }
 
@@ -128,8 +121,8 @@ impl Loc {
         let new_y = self.y as i32 + y_diff;
 
         if new_x < 0 || new_y < 0 {
-            self.x = clamp_negative!(new_x) as usize;
-            self.y = clamp_negative!(new_y) as usize;
+            self.x = new_x.clamp(0, i32::MAX) as usize;
+            self.y = new_y.clamp(0, i32::MAX) as usize;
             return false;
         }
 
@@ -224,6 +217,26 @@ macro_rules! ternary {
     };
 }
 
+/// Convert a position on the screen to a board location
+pub fn pos_to_board(pos: (f32, f32)) -> Option<Loc> {
+    let x = (pos.0 - MARGIN) / SQUARE_SIZE;
+    let y = (pos.1 - MARGIN) / SQUARE_SIZE;
+
+    if x < 0.0 || y < 0.0 || x > 8.0 || y > 8.0 {
+        return None;
+    }
+
+    Some(loc!(x as usize, y as usize))
+}
+
+/// Converts a board location to a position on the screen
+pub fn board_to_pos_center(loc: &Loc) -> (f32, f32) {
+    (
+        loc.x as f32 * SQUARE_SIZE + MARGIN + SQUARE_SIZE / 2.0,
+        loc.y as f32 * SQUARE_SIZE + MARGIN + SQUARE_SIZE / 2.0,
+    )
+}
+
 /// Creates a button that can be clicked
 pub struct Button {
     x: f32,
@@ -295,7 +308,8 @@ impl Button {
     }
 }
 
-fn angle(origin: (f32, f32), dest: (f32, f32)) -> f32 {
+// Gets the angle between two points
+pub fn angle(origin: (f32, f32), dest: (f32, f32)) -> f32 {
     let x_dist = dest.0 - origin.0;
     let y_dist = dest.1 - origin.1;
 
@@ -303,18 +317,20 @@ fn angle(origin: (f32, f32), dest: (f32, f32)) -> f32 {
 }
 
 /// Returns a new point that is the distance away from the original point in the direction of the angle
-fn project(origin: (f32, f32), angle: f32, distance: f32) -> (f32, f32) {
+pub fn project(origin: (f32, f32), angle: f32, distance: f32) -> (f32, f32) {
     (
         origin.0 + (angle.cos() * distance),
         origin.1 - (angle.sin() * distance),
     )
 }
 
+/// Gets the distance between two points
 fn distance(p1: (f32, f32), p2: (f32, f32)) -> f32 {
     ((p1.0 - p2.0).powf(2.0) + (p1.1 - p2.1).powf(2.0)).sqrt()
 }
 
 #[derive(new)]
+/// A tween that moves from one point to another linearly
 pub struct Tween {
     start: (f32, f32),
     end: (f32, f32),

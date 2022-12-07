@@ -37,6 +37,7 @@ pub enum BoardState {
     /// Attached color is who is in checkmate
     Checkmate(ChessColor),
     Stalemate,
+    Draw,
 }
 
 /// Board that is stripped of non-vital information to compare two boards, used for 3fold repetition check
@@ -132,6 +133,9 @@ pub struct Board {
     #[new(value = "[None; 12]")]
     pub prev_states: [Option<SimpleBoard>; 12],
 
+    #[new(value = "vec![]")]
+    pub move_history: Vec<(PieceNames, Loc)>,
+
     /// Updates on piece capture or pawn move
     #[new(value = "0")]
     pub fifty_rule: u32,
@@ -182,6 +186,9 @@ impl Board {
             ChessColor::White => ChessColor::Black,
         };
         self.half_moves += 1;
+
+        // Add to move history
+        self.move_history.push((self.get(from).unwrap().name, *to));
 
         // 3fold repetition
         self.prev_states.rotate_right(1);
@@ -255,7 +262,7 @@ impl Board {
     fn detect_state(&mut self, check_stale: bool) {
         // Fifty move rule
         if self.half_moves - self.fifty_rule >= 50 {
-            self.state = BoardState::Stalemate;
+            self.state = BoardState::Draw;
             return;
         }
 
@@ -265,7 +272,7 @@ impl Board {
             if simple == self {
                 sum += 1;
                 if sum >= 3 {
-                    self.state = BoardState::Stalemate;
+                    self.state = BoardState::Draw;
                     return;
                 }
             }

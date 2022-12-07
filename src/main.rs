@@ -122,10 +122,7 @@ async fn load_images() {
 #[macroquad::main(config)]
 async fn main() {
     let start = SystemTime::now();
-    let seed = start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis() as u64;
+    let seed = start.duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
     srand(seed);
 
     load_images().await;

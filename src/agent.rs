@@ -10,13 +10,26 @@
 //!
 //! - Just picks a valid move by random
 
+use std::str::from_utf8;
+
 use lazy_static::lazy_static;
 use macroquad::rand::ChooseRandom;
 use rustc_hash::FxHashMap;
+use serde_json::{from_str, Value};
 
 use crate::board::{Board, ChessColor};
 use crate::util::{choose_array, Loc};
 use crate::{color_ternary, hashmap, loc};
+
+lazy_static! {
+    static ref OPENINGS: Value =
+        from_str(from_utf8(include_bytes!("../assets/openings.json")).unwrap()).unwrap();
+}
+
+#[test]
+fn test() {
+    println!("OPENINGS: {:?}", *OPENINGS);
+}
 
 pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
     let moves = board.get_moves(board.agent_color);
@@ -37,6 +50,7 @@ const OPENINGS_WHITE: [(Loc, Loc); 4] = [
     (loc!(5, 6), loc!(5, 4)),
 ];
 
+/// Minimax agent with alpha-beta pruning and sorted move ordering
 fn minimax(
     board: &Board,
     maximizing: bool,
@@ -108,28 +122,30 @@ fn minimax(
     }
 }
 
+/// Wrapper for minimax
 pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
     let (_, best_move) = minimax(board, false, 4, i32::MIN, i32::MAX);
     best_move
 }
 
 #[derive(Clone, Copy, Debug)]
+/// List of agents for [Board] to use
 pub enum Agent {
-    Random,
     Minimax,
+    Random,
 }
 impl Agent {
     pub fn get_move(&self, board: &Board) -> Option<(Loc, Loc)> {
         match self {
-            Agent::Random => random_agent(board),
             Agent::Minimax => minimax_agent(board),
+            Agent::Random => random_agent(board),
         }
     }
 }
 
 lazy_static! {
     pub static ref AGENTS: FxHashMap<&'static str, Agent> = hashmap! {
-        "Random" => Agent::Random,
         "Minimax" => Agent::Minimax,
+        "Random" => Agent::Random,
     };
 }
