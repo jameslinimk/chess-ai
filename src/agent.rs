@@ -71,13 +71,13 @@ fn minimax(
 
             let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
 
-            if score >= max_score {
+            if score > max_score {
                 max_score = score;
                 best_move = Some((*from, *to));
             }
 
             alpha = alpha.max(max_score);
-            if beta < alpha {
+            if beta <= alpha {
                 break;
             }
         }
@@ -93,13 +93,13 @@ fn minimax(
 
             let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
 
-            if score <= min_score {
+            if score < min_score {
                 min_score = score;
                 best_move = Some((*from, *to));
             }
 
             beta = beta.min(min_score);
-            if beta < alpha {
+            if beta <= alpha {
                 break;
             }
         }
@@ -109,7 +109,7 @@ fn minimax(
 }
 
 pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
-    let (_, best_move) = minimax(board, false, 3, i32::MIN, i32::MAX);
+    let (_, best_move) = minimax(board, false, 4, i32::MIN, i32::MAX);
     best_move
 }
 

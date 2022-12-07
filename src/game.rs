@@ -17,7 +17,7 @@ use crate::conf::{
     COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN, SQUARE_SIZE, TEST_FEN, WASM, WIDTH,
 };
 use crate::pieces::piece::Piece;
-use crate::util::{multiline_text_ex, touches, Button, Loc};
+use crate::util::{multiline_text_ex, touches, Button, Loc, Tween};
 use crate::{get_font, loc, ternary};
 
 #[derive(new)]
@@ -26,7 +26,7 @@ pub struct Game {
     pub board: Board,
 
     #[new(value = "vec![]")]
-    pub board_history: Vec<Board>,
+    pub board_history: Vec<(Board, Option<(Loc, Loc)>)>,
 
     #[new(value = "None")]
     pub selected: Option<Piece>,
@@ -60,6 +60,13 @@ pub struct Game {
     #[new(value = "false")]
     pub waiting_on_agent: bool,
 
+    #[new(value = "None")]
+    pub last_move: Option<(Loc, Loc)>,
+
+    /// (loc of piece that is being tweened, tween)
+    #[new(value = "None")]
+    pub current_tween: Option<(Loc, Tween)>,
+
     #[new(value = "unbounded()")]
     #[allow(clippy::type_complexity)]
     pub agent_channel: (Sender<Option<(Loc, Loc)>>, Receiver<Option<(Loc, Loc)>>),
@@ -91,12 +98,15 @@ impl Game {
 
     fn move_piece(&mut self, from: &Loc, to: &Loc) {
         if self.board.turn == self.board.player_color {
-            self.board_history.push(self.board.clone());
+            self.board_history
+                .push((self.board.clone(), self.last_move));
         }
 
         let capture = self.board.move_piece(from, to, true);
         self.selected = None;
         self.highlight = vec![];
+        self.last_move = Some((*from, *to));
+        self.current_tween = Some((*to, Tween::new(from.as_tuple(), to.as_tuple(), 20.0)));
 
         // See if move was capture
         if capture {
@@ -136,9 +146,10 @@ impl Game {
         if is_key_pressed(KeyCode::L) {
             if self.waiting_on_agent {
                 info!("Waiting on agent...");
-            } else if let Some(board) = self.board_history.pop() {
+            } else if let Some((board, last_move)) = self.board_history.pop() {
                 self.board = board;
                 self.selected = None;
+                self.last_move = last_move;
                 self.highlight = vec![];
             }
         }
@@ -251,11 +262,11 @@ impl Game {
         } else {
             let agent = self.agent;
             let board = self.board.clone();
-            let sender = self.agent_channel.0.clone();
             self.waiting_on_agent = true;
             if WASM {
-                sender.send(agent.get_move(&board)).unwrap();
+                self.agent_channel.0.send(agent.get_move(&board)).unwrap();
             } else {
+                let sender = self.agent_channel.0.clone();
                 spawn(move || {
                     sender.send(agent.get_move(&board)).unwrap();
                 });
@@ -263,7 +274,8 @@ impl Game {
         }
 
         // Drawing
-        self.board.draw(&self.highlight);
+        self.board
+            .draw(&self.highlight, &self.last_move, &mut self.current_tween);
         self.draw_ui();
 
         if self.board.is_over() {

@@ -8,22 +8,77 @@ use macroquad::texture::draw_texture;
 use rustc_hash::FxHashSet;
 
 use crate::board::{Board, BoardState, ChessColor, SimpleBoard};
-use crate::conf::{COLOR_BLACK, COLOR_SELECTED, COLOR_WHITE, MARGIN, SQUARE_SIZE};
+use crate::conf::{COLOR_BLACK, COLOR_LAST_MOVE, COLOR_SELECTED, COLOR_WHITE, MARGIN, SQUARE_SIZE};
 use crate::pieces::piece::{Piece, PieceNames};
-use crate::util::{validate_fen, Loc};
+use crate::util::{validate_fen, Loc, Tween};
 use crate::{color_ternary, hashset, loc};
 
-#[inline(always)]
-fn name_to_fen(name: &PieceNames) -> char {
-    match name {
-        PieceNames::Pawn => 'p',
-        PieceNames::Rook => 'r',
-        PieceNames::Knight => 'n',
-        PieceNames::Bishop => 'b',
-        PieceNames::Queen => 'q',
-        PieceNames::King => 'k',
-    }
-}
+const ENUMERATES: [(usize, usize); 64] = [
+    (0, 0),
+    (1, 0),
+    (2, 0),
+    (3, 0),
+    (4, 0),
+    (5, 0),
+    (6, 0),
+    (7, 0),
+    (0, 1),
+    (1, 1),
+    (2, 1),
+    (3, 1),
+    (4, 1),
+    (5, 1),
+    (6, 1),
+    (7, 1),
+    (0, 2),
+    (1, 2),
+    (2, 2),
+    (3, 2),
+    (4, 2),
+    (5, 2),
+    (6, 2),
+    (7, 2),
+    (0, 3),
+    (1, 3),
+    (2, 3),
+    (3, 3),
+    (4, 3),
+    (5, 3),
+    (6, 3),
+    (7, 3),
+    (0, 4),
+    (1, 4),
+    (2, 4),
+    (3, 4),
+    (4, 4),
+    (5, 4),
+    (6, 4),
+    (7, 4),
+    (0, 5),
+    (1, 5),
+    (2, 5),
+    (3, 5),
+    (4, 5),
+    (5, 5),
+    (6, 5),
+    (7, 5),
+    (0, 6),
+    (1, 6),
+    (2, 6),
+    (3, 6),
+    (4, 6),
+    (5, 6),
+    (6, 6),
+    (7, 6),
+    (0, 7),
+    (1, 7),
+    (2, 7),
+    (3, 7),
+    (4, 7),
+    (5, 7),
+    (6, 7),
+    (7, 7),
+];
 
 impl Board {
     /// Generate a new board given a FEN string
@@ -140,7 +195,14 @@ impl Board {
                         }
                         empty = 0;
 
-                        let char = name_to_fen(&p.name);
+                        let char = match &p.name {
+                            PieceNames::Pawn => 'p',
+                            PieceNames::Rook => 'r',
+                            PieceNames::Knight => 'n',
+                            PieceNames::Bishop => 'b',
+                            PieceNames::Queen => 'q',
+                            PieceNames::King => 'k',
+                        };
                         row_string.push_str(&match p.color {
                             ChessColor::White => char.to_uppercase().to_string(),
                             ChessColor::Black => char.to_lowercase().to_string(),
@@ -201,41 +263,78 @@ impl Board {
     }
 
     /// Draws the board to the screen
-    pub fn draw(&self, highlight: &[Loc]) {
-        for (y, row) in self.raw.iter().enumerate() {
-            for (x, square) in row.iter().enumerate() {
-                let color = if (x + y) % 2 == 0 {
-                    COLOR_WHITE
-                } else {
-                    COLOR_BLACK
-                };
-                draw_rectangle(
-                    MARGIN + SQUARE_SIZE * x as f32,
-                    MARGIN + SQUARE_SIZE * y as f32,
-                    SQUARE_SIZE,
-                    SQUARE_SIZE,
-                    color,
-                );
+    pub fn draw(
+        &self,
+        highlight: &[Loc],
+        last_move: &Option<(Loc, Loc)>,
+        current_tween: &mut Option<(Loc, Tween)>,
+    ) {
+        for (x, y) in ENUMERATES {
+            let color = if (x + y) % 2 == 0 {
+                COLOR_WHITE
+            } else {
+                COLOR_BLACK
+            };
+            draw_rectangle(
+                MARGIN + SQUARE_SIZE * x as f32,
+                MARGIN + SQUARE_SIZE * y as f32,
+                SQUARE_SIZE,
+                SQUARE_SIZE,
+                color,
+            );
 
-                // Draw piece
-                if let Some(piece) = square {
-                    draw_texture(
-                        piece.get_image(),
+            // Draw last move
+            if let Some(last_move) = last_move {
+                if last_move.0 == loc!(x, y) || last_move.1 == loc!(x, y) {
+                    draw_rectangle(
                         MARGIN + SQUARE_SIZE * x as f32,
                         MARGIN + SQUARE_SIZE * y as f32,
-                        WHITE,
-                    )
-                }
-
-                // Draw highlight
-                if highlight.contains(&loc!(x, y)) {
-                    draw_circle(
-                        MARGIN + SQUARE_SIZE * x as f32 + SQUARE_SIZE / 2.0,
-                        MARGIN + SQUARE_SIZE * y as f32 + SQUARE_SIZE / 2.0,
-                        SQUARE_SIZE / 4.0,
-                        COLOR_SELECTED,
+                        SQUARE_SIZE,
+                        SQUARE_SIZE,
+                        COLOR_LAST_MOVE,
                     );
                 }
+            }
+        }
+        for (y, row) in self.raw.iter().enumerate() {
+            for (x, square) in row.iter().enumerate() {
+                // Draw piece
+                if let Some(piece) = square {
+                    let mut tweened = false;
+                    if let Some((loc, tween)) = current_tween {
+                        if loc == &loc!(x, y) {
+                            let (x, y) = tween.update();
+                            draw_texture(
+                                piece.get_image(),
+                                MARGIN + SQUARE_SIZE * x,
+                                MARGIN + SQUARE_SIZE * y,
+                                WHITE,
+                            );
+                            tweened = true;
+                        }
+                    }
+
+                    if !tweened {
+                        draw_texture(
+                            piece.get_image(),
+                            MARGIN + SQUARE_SIZE * x as f32,
+                            MARGIN + SQUARE_SIZE * y as f32,
+                            WHITE,
+                        )
+                    }
+                }
+            }
+        }
+
+        for (x, y) in ENUMERATES {
+            // Draw highlight
+            if highlight.contains(&loc!(x, y)) {
+                draw_circle(
+                    MARGIN + SQUARE_SIZE * x as f32 + SQUARE_SIZE / 2.0,
+                    MARGIN + SQUARE_SIZE * y as f32 + SQUARE_SIZE / 2.0,
+                    SQUARE_SIZE / 4.0,
+                    COLOR_SELECTED,
+                );
             }
         }
     }

@@ -1,11 +1,14 @@
+use std::f32::consts::PI;
 use std::fmt;
 
+use derive_new::new;
 use macroquad::prelude::{
     is_mouse_button_down, is_mouse_button_pressed, mouse_position, MouseButton,
 };
 use macroquad::rand::gen_range;
 use macroquad::shapes::draw_rectangle;
 use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
+use macroquad::time::get_frame_time;
 
 use crate::conf::{COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE};
 use crate::get_font;
@@ -169,6 +172,10 @@ impl Loc {
         };
         loc!(x as usize, y)
     }
+
+    pub fn as_tuple(&self) -> (f32, f32) {
+        (self.x as f32, self.y as f32)
+    }
 }
 
 /// Sees if a rectangle contains a point
@@ -285,5 +292,44 @@ impl Button {
             self.y + self.h / 2.0 + self.dims.height / 2.0,
             self.params,
         );
+    }
+}
+
+fn angle(origin: (f32, f32), dest: (f32, f32)) -> f32 {
+    let x_dist = dest.0 - origin.0;
+    let y_dist = dest.1 - origin.1;
+
+    (-y_dist).atan2(x_dist) % (2.0 * PI)
+}
+
+/// Returns a new point that is the distance away from the original point in the direction of the angle
+fn project(origin: (f32, f32), angle: f32, distance: f32) -> (f32, f32) {
+    (
+        origin.0 + (angle.cos() * distance),
+        origin.1 - (angle.sin() * distance),
+    )
+}
+
+fn distance(p1: (f32, f32), p2: (f32, f32)) -> f32 {
+    ((p1.0 - p2.0).powf(2.0) + (p1.1 - p2.1).powf(2.0)).sqrt()
+}
+
+#[derive(new)]
+pub struct Tween {
+    start: (f32, f32),
+    end: (f32, f32),
+    #[new(value = "angle(start, end)")]
+    angle: f32,
+    speed: f32,
+}
+impl Tween {
+    pub fn update(&mut self) -> (f32, f32) {
+        self.start = project(self.start, self.angle, self.speed * get_frame_time());
+        if distance(self.start, self.end) <= self.speed * get_frame_time() {
+            self.start = self.end;
+            self.speed = 0.0;
+        }
+
+        self.start
     }
 }

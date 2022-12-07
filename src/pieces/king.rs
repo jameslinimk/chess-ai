@@ -1,8 +1,8 @@
 use super::piece::Piece;
 use super::util::{static_attacks, static_moves};
 use crate::board::Board;
-use crate::color_ternary;
 use crate::util::Loc;
+use crate::{color_ternary, loc};
 
 pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     let directions = vec![
@@ -23,27 +23,27 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
         return moves;
     }
 
-    let can_castle = color_ternary!(piece.color, board.castle_white, board.castle_black);
-    let mut directions = Vec::with_capacity(2);
-    if can_castle.0 {
-        directions.push(1);
-    }
-    if can_castle.1 {
-        directions.push(-1);
-    }
-    for dir in directions.iter() {
-        'main: {
-            let l = if dir == &1 { 2 } else { 3 };
-            for i in 1..=l {
-                let pos = piece.pos.copy_move_i32(i * dir, 0).0;
-                if board.get(&pos).is_some() {
-                    break 'main;
+    let (queen_side, king_side) =
+        color_ternary!(piece.color, board.castle_white, board.castle_black);
+    macro_rules! clear_range {
+        ($start: expr, $end: expr) => {
+            'main: {
+                for i in $start..=$end {
+                    if board.get(&loc!(i, piece.pos.y)).is_some() {
+                        break 'main true;
+                    }
                 }
+                break 'main false;
             }
-
-            let loc = piece.pos.copy_move_i32(2 * dir, 0).0;
-            moves.push(loc);
         };
+    }
+
+    if queen_side && !clear_range!(1, 3) {
+        moves.push(loc!(2, piece.pos.y));
+    }
+
+    if king_side && !clear_range!(5, 6) {
+        moves.push(loc!(6, piece.pos.y));
     }
 
     moves

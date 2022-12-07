@@ -40,18 +40,14 @@ pub fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     }
 
     // Diagonal captures
-    add_if_capture(
-        board,
-        &piece.color,
-        piece.pos.copy_move_i32(1, direction).0,
-        &mut moves,
-    );
-    add_if_capture(
-        board,
-        &piece.color,
-        piece.pos.copy_move_i32(-1, direction).0,
-        &mut moves,
-    );
+    let left_side = piece.pos.copy_move_i32(-1, direction);
+    if !left_side.1 {
+        add_if_capture(board, &piece.color, left_side.0, &mut moves);
+    }
+    let right_side = piece.pos.copy_move_i32(1, direction);
+    if !right_side.1 {
+        add_if_capture(board, &piece.color, right_side.0, &mut moves);
+    }
 
     // En passent
     if let Some(en_passent) = board.en_passent {
