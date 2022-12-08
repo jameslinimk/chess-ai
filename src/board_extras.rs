@@ -56,15 +56,7 @@ impl Board {
             } else {
                 ChessColor::Black
             };
-            let name = match c.to_ascii_lowercase() {
-                'p' => PieceNames::Pawn,
-                'n' => PieceNames::Knight,
-                'b' => PieceNames::Bishop,
-                'r' => PieceNames::Rook,
-                'q' => PieceNames::Queen,
-                'k' => PieceNames::King,
-                _ => panic!("Invalid FEN (board)"),
-            };
+            let name = char_to_piece(&c);
             board.set(&loc!(x, y), Some(Piece::new(name, color, loc!(x, y))));
             x += 1;
         }
@@ -299,8 +291,10 @@ impl Board {
 
             let new_end = project(end, angle, 5.0);
 
-            draw_line(start.0, start.1, end.0, end.1, 10.0, COLOR_ARROW);
-            draw_circle(start.0, start.1, 5.0, COLOR_ARROW);
+            let new_start = project(start, angle, SQUARE_SIZE / 3.0);
+            draw_line(new_start.0, new_start.1, end.0, end.1, 10.0, COLOR_ARROW);
+
+            draw_circle(new_start.0, new_start.1, 5.0, COLOR_ARROW);
             draw_triangle(
                 new_end.into(),
                 left_point.into(),
@@ -317,7 +311,7 @@ impl Board {
                 match piece {
                     Some(p) => {
                         let first_char = format!("{:?}", p.name).chars().next().unwrap();
-                        info!(
+                        print!(
                             "{}",
                             match p.color {
                                 ChessColor::White => first_char.to_uppercase().to_string(),
@@ -325,10 +319,10 @@ impl Board {
                             }
                         )
                     }
-                    None => info!("-"),
+                    None => print!("-"),
                 }
             }
-            info!("");
+            println!();
         }
     }
 
@@ -404,4 +398,18 @@ impl Board {
             en_passent: self.en_passent,
         }
     }
+}
+
+/// Converts a string to a piece
+pub fn char_to_piece(c: &char) -> PieceNames {
+    let name = match c.to_ascii_lowercase() {
+        'p' => PieceNames::Pawn,
+        'n' => PieceNames::Knight,
+        'b' => PieceNames::Bishop,
+        'r' => PieceNames::Rook,
+        'q' => PieceNames::Queen,
+        'k' => PieceNames::King,
+        _ => panic!("Invalid piece"),
+    };
+    name
 }

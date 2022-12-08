@@ -151,6 +151,9 @@ impl Board {
             return false;
         }
 
+        // Add to move history
+        self.move_history.push((self.get(from).unwrap().name, *to));
+
         let (capture, capture_pos) = self.is_capture(from, to);
 
         // Special case where a castle rook is captured
@@ -186,9 +189,6 @@ impl Board {
             ChessColor::White => ChessColor::Black,
         };
         self.half_moves += 1;
-
-        // Add to move history
-        self.move_history.push((self.get(from).unwrap().name, *to));
 
         // 3fold repetition
         self.prev_states.rotate_right(1);
