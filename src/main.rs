@@ -17,6 +17,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use conf::{COLOR_BACKGROUND, HEIGHT, WIDTH};
 use game::Game;
+use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::{next_frame, Conf};
 use macroquad::rand::srand;
 use macroquad::text::Font;
@@ -33,13 +34,46 @@ pub mod game;
 pub mod pieces;
 pub mod util;
 
-/// Macroquad config function
+#[cfg(not(windows))]
 fn config() -> Conf {
     Conf {
         window_title: "Chess AI".to_owned(),
         window_width: WIDTH,
         window_height: HEIGHT,
         window_resizable: false,
+        ..Default::default()
+    }
+}
+
+#[cfg(windows)]
+fn config() -> Conf {
+    use std::io::Cursor;
+
+    use image::io::Reader;
+
+    macro_rules! image {
+        ($path: expr) => {
+            Reader::new(Cursor::new(include_bytes!($path)))
+                .with_guessed_format()
+                .unwrap()
+                .decode()
+                .unwrap()
+                .to_rgba8()
+                .to_vec()
+                .try_into()
+                .unwrap()
+        };
+    }
+
+    Conf {
+        window_title: "Chess AI".to_owned(),
+        window_width: WIDTH,
+        window_height: HEIGHT,
+        window_resizable: false,
+        icon: Some(Icon {
+            small: image!("../assets/icon-16.png")            medium: image!("../assets/icon-32.png"),
+            big: image!("../assets/icon-64.png"),
+        }),
         ..Default::default()
     }
 }
@@ -52,7 +86,7 @@ pub fn get_font() -> Font {
     unsafe { FONT.unwrap() }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(target_family = "wasm")]
 async fn load_images() {
     use macroquad::text::load_ttf_font;
 
@@ -74,7 +108,7 @@ async fn load_images() {
     load_audio("assets/sounds/capture.wav").await;
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_family = "wasm"))]
 async fn load_images() {
     use std::future::join;
 
