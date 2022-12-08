@@ -31,4 +31,4 @@ for (let i = 0; i < raw_opens.length; i++) {
     }
 }
 
-writeFileSync("../assets/openings.json", JSON.stringify(opens))
+writeFileSync("openings.json", JSON.stringify(opens))

@@ -4,7 +4,7 @@
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
-use macroquad::prelude::{info, WHITE};
+use macroquad::prelude::WHITE;
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_triangle};
 use macroquad::texture::draw_texture;
 use rustc_hash::FxHashSet;
@@ -128,14 +128,7 @@ impl Board {
                         }
                         empty = 0;
 
-                        let char = match &p.name {
-                            PieceNames::Pawn => 'p',
-                            PieceNames::Rook => 'r',
-                            PieceNames::Knight => 'n',
-                            PieceNames::Bishop => 'b',
-                            PieceNames::Queen => 'q',
-                            PieceNames::King => 'k',
-                        };
+                        let char = piece_to_char(&p.name);
                         row_string.push_str(&match p.color {
                             ChessColor::White => char.to_uppercase().to_string(),
                             ChessColor::Black => char.to_lowercase().to_string(),
@@ -310,7 +303,7 @@ impl Board {
             for piece in row.iter() {
                 match piece {
                     Some(p) => {
-                        let first_char = format!("{:?}", p.name).chars().next().unwrap();
+                        let first_char = piece_to_char(&p.name);
                         print!(
                             "{}",
                             match p.color {
@@ -400,9 +393,21 @@ impl Board {
     }
 }
 
+/// Converts a piece name to a char
+fn piece_to_char(name: &PieceNames) -> char {
+    match name {
+        PieceNames::Pawn => 'p',
+        PieceNames::Rook => 'r',
+        PieceNames::Knight => 'n',
+        PieceNames::Bishop => 'b',
+        PieceNames::Queen => 'q',
+        PieceNames::King => 'k',
+    }
+}
+
 /// Converts a string to a piece
 pub fn char_to_piece(c: &char) -> PieceNames {
-    let name = match c.to_ascii_lowercase() {
+    match c.to_ascii_lowercase() {
         'p' => PieceNames::Pawn,
         'n' => PieceNames::Knight,
         'b' => PieceNames::Bishop,
@@ -410,6 +415,5 @@ pub fn char_to_piece(c: &char) -> PieceNames {
         'q' => PieceNames::Queen,
         'k' => PieceNames::King,
         _ => panic!("Invalid piece"),
-    };
-    name
+    }
 }

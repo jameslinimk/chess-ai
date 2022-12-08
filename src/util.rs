@@ -9,6 +9,7 @@ use macroquad::rand::gen_range;
 use macroquad::shapes::draw_rectangle;
 use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
 use macroquad::time::get_frame_time;
+use serde::{Deserialize, Serialize};
 
 use crate::conf::{
     COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE, MARGIN, SQUARE_SIZE,
@@ -89,7 +90,7 @@ macro_rules! hashset {
     };
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// A Vec2 with usize values and utility functions for chess board stuff
 pub struct Loc {
     pub x: usize,

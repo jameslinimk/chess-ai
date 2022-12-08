@@ -23,6 +23,7 @@ use macroquad::text::Font;
 use macroquad::window::clear_background;
 
 pub mod agent;
+pub mod agent_opens;
 pub mod assets;
 pub mod board;
 pub mod board_eval;
