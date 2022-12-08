@@ -326,7 +326,7 @@ pub fn project(origin: (f32, f32), angle: f32, distance: f32) -> (f32, f32) {
 }
 
 /// Gets the distance between two points
-fn distance(p1: (f32, f32), p2: (f32, f32)) -> f32 {
+pub fn distance(p1: (f32, f32), p2: (f32, f32)) -> f32 {
     ((p1.0 - p2.0).powf(2.0) + (p1.1 - p2.1).powf(2.0)).sqrt()
 }
 

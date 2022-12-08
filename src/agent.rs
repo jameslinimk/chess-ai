@@ -11,11 +11,12 @@
 //! - Just picks a valid move by random
 
 use lazy_static::lazy_static;
+use macroquad::prelude::info;
 use macroquad::rand::ChooseRandom;
 use rustc_hash::FxHashMap;
 
 use crate::board::{Board, ChessColor};
-use crate::util::Loc;
+use crate::util::{choose_array, Loc};
 use crate::{color_ternary, hashmap};
 
 pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
@@ -37,7 +38,12 @@ fn minimax(
     }
 
     // First move for white
-    if !board.openings.is_empty() {}
+    if !board.openings.is_empty() {
+        let open = choose_array(&board.openings);
+        let mo = open.moves[board.half_moves as usize];
+        info!("opening: {}", open.name);
+        return (0, Some(mo));
+    }
 
     let moves = color_ternary!(
         board.turn,
@@ -94,6 +100,7 @@ fn minimax(
 
 /// Wrapper for minimax
 pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
+    info!("board.endgame: {:?}", board.endgame);
     let (_, best_move) = minimax(board, false, 4, i32::MIN, i32::MAX);
     best_move
 }

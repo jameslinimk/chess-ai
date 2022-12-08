@@ -130,9 +130,6 @@ impl Game {
         if is_key_pressed(KeyCode::F) {
             self.board.print();
         }
-        if is_key_pressed(KeyCode::E) {
-            info!("self.board: {:#?}", self.board);
-        }
         if is_key_pressed(KeyCode::T) {
             info!("{}", self.board.as_fen());
         }
@@ -151,13 +148,12 @@ impl Game {
                 self.selected = None;
                 self.last_move = last_move;
                 self.highlight_moves.clear();
-                self.highlights.clear();
-                self.arrows.clear();
+
+                self.clear_arrows_highlights();
             }
         }
         if is_key_pressed(KeyCode::C) {
-            self.highlights.clear();
-            self.arrows.clear();
+            self.clear_arrows_highlights();
         }
     }
 
@@ -239,7 +235,18 @@ impl Game {
         );
     }
 
+    fn clear_arrows_highlights(&mut self) {
+        self.highlights.clear();
+        self.arrows.clear();
+        self.drag_end = None;
+        self.drag_start = None;
+    }
+
     pub fn update_arrows_highlights(&mut self) {
+        if is_mouse_button_down(MouseButton::Left) {
+            self.clear_arrows_highlights();
+        }
+
         if is_mouse_button_down(MouseButton::Right) {
             if self.drag_start.is_none() {
                 self.drag_start = pos_to_board(mouse_position());
@@ -296,9 +303,6 @@ impl Game {
                         self.highlight_moves = self.selected.unwrap().get_moves(&self.board);
                     }
                 }
-
-                self.highlights.clear();
-                self.arrows.clear();
             }
         } else if self.waiting_on_agent {
             if let Ok(mov) = self.agent_channel.1.try_recv() {

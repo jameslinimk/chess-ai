@@ -157,6 +157,7 @@ impl Board {
 
         // Add to move history
         self.move_history.push((*from, *to));
+        self.update_opens();
 
         let (capture, capture_pos) = self.is_capture(from, to);
 
@@ -255,7 +256,7 @@ impl Board {
                 }
             }
 
-            queens == 0 || (queens == 2 && minors <= 1)
+            queens == 0 || minors <= queens
         };
 
         // Set score (relies on state, endgame)
@@ -336,6 +337,10 @@ impl Board {
 
     // Move the piece in `from` to `to` without updating anything
     fn move_raw(&mut self, from: &Loc, to: &Loc) {
+        if let Some(piece) = self.raw[from.y][from.x].as_mut() {
+            piece.pos = *to;
+        }
+
         self.set(to, self.get(from));
         self.set(from, None);
     }
@@ -381,7 +386,6 @@ impl Board {
                             _ => panic!(),
                         };
 
-                        self.raw[rook_from.y][rook_from.x].as_mut().unwrap().pos = rook_to;
                         self.move_raw(&rook_from, &rook_to);
                     }
                 }

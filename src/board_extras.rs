@@ -2,7 +2,7 @@
 //!
 //! Extra fen and util functions for [Board]
 
-use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, PI};
 
 use macroquad::prelude::WHITE;
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_triangle};
@@ -15,7 +15,7 @@ use crate::conf::{
     MARGIN, SQUARE_SIZE,
 };
 use crate::pieces::piece::{Piece, PieceNames};
-use crate::util::{angle, board_to_pos_center, project, validate_fen, Loc, Tween};
+use crate::util::{angle, board_to_pos_center, distance, project, validate_fen, Loc, Tween};
 use crate::{color_ternary, hashset, loc};
 
 #[rustfmt::skip]
@@ -276,20 +276,29 @@ impl Board {
             let end = board_to_pos_center(&arrow.1);
             let angle = angle(start, end);
 
-            let left_angle = (angle - FRAC_PI_2 - FRAC_PI_4) % (2.0 * PI);
+            let left_angle = (angle - FRAC_PI_2 - FRAC_PI_3) % (2.0 * PI);
             let left_point = project(end, left_angle, 25.0);
 
-            let right_angle = (angle + FRAC_PI_2 + FRAC_PI_4) % (2.0 * PI);
+            let right_angle = (angle + FRAC_PI_2 + FRAC_PI_3) % (2.0 * PI);
             let right_point = project(end, right_angle, 25.0);
 
-            let new_end = project(end, angle, 5.0);
+            let top_end = project(end, angle, -7.0);
 
             let new_start = project(start, angle, SQUARE_SIZE / 3.0);
-            draw_line(new_start.0, new_start.1, end.0, end.1, 10.0, COLOR_ARROW);
+            let new_end = project(start, angle, distance(start, end) - 15.0);
+
+            draw_line(
+                new_start.0,
+                new_start.1,
+                new_end.0,
+                new_end.1,
+                10.0,
+                COLOR_ARROW,
+            );
 
             draw_circle(new_start.0, new_start.1, 5.0, COLOR_ARROW);
             draw_triangle(
-                new_end.into(),
+                top_end.into(),
                 left_point.into(),
                 right_point.into(),
                 COLOR_ARROW,

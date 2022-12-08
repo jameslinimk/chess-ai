@@ -4,14 +4,23 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use serde_json::from_str;
 
+use crate::board::Board;
 use crate::util::Loc;
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Opening {
     /// Name of the opening
-    name: String,
+    pub name: String,
     /// List of moves the the full opening
-    moves: Vec<(Loc, Loc)>,
+    pub moves: Vec<(Loc, Loc)>,
+}
+
+impl Board {
+    pub fn update_opens(&mut self) {
+        self.openings.retain(|open| {
+            open.moves.starts_with(&self.move_history) && open.moves.len() > self.move_history.len()
+        });
+    }
 }
 
 lazy_static! {
