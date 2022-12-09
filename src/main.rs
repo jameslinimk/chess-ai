@@ -10,17 +10,27 @@
 //! Clone and build using `cargo build`
 
 #![feature(future_join)]
-
+#[cfg(not(target_family = "wasm"))]
+use std::thread::spawn;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(not(target_family = "wasm"))]
+use colored::{Color, Colorize};
 use conf::{COLOR_BACKGROUND, HEIGHT, WIDTH};
 use game::Game;
+#[cfg(not(target_family = "wasm"))]
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::{next_frame, Conf};
+#[cfg(not(target_family = "wasm"))]
+use macroquad::prelude::{Color as MacroColor, GRAY};
 use macroquad::rand::srand;
 use macroquad::text::Font;
 use macroquad::window::clear_background;
-use reqwest::get;
+#[cfg(not(target_family = "wasm"))]
+use reqwest::blocking::get;
+
+#[cfg(not(target_family = "wasm"))]
+use crate::conf::{COLOR_BLACK, COLOR_WHITE};
 
 pub mod agent;
 pub mod agent_opens;
@@ -154,24 +164,62 @@ async fn load_images() {
     .await;
 }
 
-pub const CONFIG_LINK: &str = "https://raw.githubusercontent.com/jameslinimk/chess-ai/master/Cargo.toml?token=GHSAT0AAAAAABXPJT463Q2ABTUFMIZ5FB3IY4STF7A";
+pub const CONFIG_LINK: &str = "https://github.com/jameslinimk/chess-ai/raw/master/Cargo.toml";
+pub const GITHUB_LINK: &str = "https://github.com/jameslinimk/chess-ai";
+
+#[cfg(not(target_family = "wasm"))]
+fn color_convert(color: MacroColor) -> Color {
+    Color::TrueColor {
+        r: (color.r * 255.0) as u8,
+        g: (color.g * 255.0) as u8,
+        b: (color.b * 255.0) as u8,
+    }
+}
 
 #[macroquad::main(config)]
 async fn main() {
-    let resp = match get(CONFIG_LINK).await {
-        Ok(res) => {
-            for line in res
-                .text()
-                .await
-                .unwrap()
-                .lines()
-                .map(|l| l.replace(' ', ""))
-            {
-                println!("line: {:?}", line);
+    #[cfg(not(target_family = "wasm"))]
+    {
+        println!(
+            "{}\n{}\n{}\n{}",
+            "=====================================================".color(color_convert(GRAY)),
+            "░█████╗░██╗░░██╗███████╗░██████╗░██████╗  ░█████╗░██╗
+    ██╔══██╗██║░░██║██╔════╝██╔════╝██╔════╝  ██╔══██╗██║
+    ██║░░╚═╝███████║█████╗░░╚█████╗░╚█████╗░  ███████║██║
+    ██║░░██╗██╔══██║██╔══╝░░░╚═══██╗░╚═══██╗  ██╔══██║██║
+    ╚█████╔╝██║░░██║███████╗██████╔╝██████╔╝  ██║░░██║██║
+    ░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░╚═════╝░  ╚═╝░░╚═╝╚═╝"
+                .color(color_convert(COLOR_WHITE)),
+            "    █▄▄ █▄█   ░░█ ▄▀█ █▀▄▀█ █▀▀ █▀   █░░ █ █▄░█
+        █▄█ ░█░   █▄█ █▀█ █░▀░█ ██▄ ▄█   █▄▄ █ █░▀█"
+                .color(color_convert(COLOR_BLACK)),
+            "=====================================================".color(color_convert(GRAY))
+        );
+
+        spawn(|| {
+            if let Ok(res) = get(CONFIG_LINK) {
+                for line in res.text().unwrap().lines().map(|l| l.replace(' ', "")) {
+                    if line.starts_with("version") {
+                        let version = line.split('=').nth(1).unwrap().replace('"', "");
+                        if version == env!("CARGO_PKG_VERSION") {
+                            println!("{}", "Up to date!".blue());
+                        } else {
+                            println!(
+                                "{} {}",
+                                "Update available:".green(),
+                                version.to_string().bright_green()
+                            );
+                            println!(
+                                " {} {}",
+                                "Download here:".truecolor(169, 169, 169),
+                                GITHUB_LINK.truecolor(128, 128, 128)
+                            );
+                        }
+                    }
+                }
             }
-        }
-        Err(_) => {}
-    };
+        });
+    }
 
     let start = SystemTime::now();
     let seed = start.duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;

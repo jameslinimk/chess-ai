@@ -1,14 +1,10 @@
-use std::io::Result;
-
 #[cfg(windows)]
 use winres::WindowsResource;
 
-fn main() -> Result<()> {
+fn main() {
     #[cfg(windows)]
+    #[allow(unused_must_use)]
     {
-        WindowsResource::new()
-            .set_icon("assets/icon.ico")
-            .compile()?;
+        WindowsResource::new().set_icon("assets/icon.ico").compile();
     }
-    Ok(())
 }
