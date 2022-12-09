@@ -167,7 +167,11 @@ impl Loc {
         loc!(x as usize, y)
     }
 
-    pub fn as_tuple(&self) -> (f32, f32) {
+    pub fn as_tuple(&self) -> (usize, usize) {
+        (self.x, self.y)
+    }
+
+    pub fn as_tuple_f32(&self) -> (f32, f32) {
         (self.x as f32, self.y as f32)
     }
 }

@@ -12,6 +12,7 @@
 #![feature(future_join)]
 #[cfg(not(target_family = "wasm"))]
 use std::thread::spawn;
+#[cfg(not(target_family = "wasm"))]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(not(target_family = "wasm"))]
@@ -23,6 +24,7 @@ use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::{next_frame, Conf};
 #[cfg(not(target_family = "wasm"))]
 use macroquad::prelude::{Color as MacroColor, GRAY};
+#[cfg(not(target_family = "wasm"))]
 use macroquad::rand::srand;
 use macroquad::text::Font;
 use macroquad::window::clear_background;
@@ -49,7 +51,6 @@ fn config() -> Conf {
         window_title: "Chess AI".to_string(),
         window_width: WIDTH,
         window_height: HEIGHT,
-        window_resizable: false,
         ..Default::default()
     }
 }
@@ -78,7 +79,6 @@ fn config() -> Conf {
         window_title: "Chess AI".to_string(),
         window_width: WIDTH,
         window_height: HEIGHT,
-        window_resizable: false,
         icon: Some(Icon {
             small: image!("../assets/icon-16.png"),
             medium: image!("../assets/icon-32.png"),
@@ -183,15 +183,9 @@ async fn main() {
         println!(
             "{}\n{}\n{}\n{}",
             "=====================================================".color(color_convert(GRAY)),
-            "░█████╗░██╗░░██╗███████╗░██████╗░██████╗  ░█████╗░██╗
-    ██╔══██╗██║░░██║██╔════╝██╔════╝██╔════╝  ██╔══██╗██║
-    ██║░░╚═╝███████║█████╗░░╚█████╗░╚█████╗░  ███████║██║
-    ██║░░██╗██╔══██║██╔══╝░░░╚═══██╗░╚═══██╗  ██╔══██║██║
-    ╚█████╔╝██║░░██║███████╗██████╔╝██████╔╝  ██║░░██║██║
-    ░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░╚═════╝░  ╚═╝░░╚═╝╚═╝"
+            "░█████╗░██╗░░██╗███████╗░██████╗░██████╗  ░█████╗░██╗\n██╔══██╗██║░░██║██╔════╝██╔════╝██╔════╝  ██╔══██╗██║\n██║░░╚═╝███████║█████╗░░╚█████╗░╚█████╗░  ███████║██║\n██║░░██╗██╔══██║██╔══╝░░░╚═══██╗░╚═══██╗  ██╔══██║██║\n╚█████╔╝██║░░██║███████╗██████╔╝██████╔╝  ██║░░██║██║\n░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░╚═════╝░  ╚═╝░░╚═╝╚═╝"
                 .color(color_convert(COLOR_WHITE)),
-            "    █▄▄ █▄█   ░░█ ▄▀█ █▀▄▀█ █▀▀ █▀   █░░ █ █▄░█
-        █▄█ ░█░   █▄█ █▀█ █░▀░█ ██▄ ▄█   █▄▄ █ █░▀█"
+            "     █▄▄ █▄█   ░░█ ▄▀█ █▀▄▀█ █▀▀ █▀   █░░ █ █▄░█\n     █▄█ ░█░   █▄█ █▀█ █░▀░█ ██▄ ▄█   █▄▄ █ █░▀█"
                 .color(color_convert(COLOR_BLACK)),
             "=====================================================".color(color_convert(GRAY))
         );
@@ -199,31 +193,31 @@ async fn main() {
         spawn(|| {
             if let Ok(res) = get(CONFIG_LINK) {
                 for line in res.text().unwrap().lines().map(|l| l.replace(' ', "")) {
-                    if line.starts_with("version") {
-                        let version = line.split('=').nth(1).unwrap().replace('"', "");
-                        if version == env!("CARGO_PKG_VERSION") {
-                            println!("{}", "Up to date!".blue());
-                        } else {
-                            println!(
-                                "{} {}",
-                                "Update available:".green(),
-                                version.to_string().bright_green()
-                            );
-                            println!(
-                                " {} {}",
-                                "Download here:".truecolor(169, 169, 169),
-                                GITHUB_LINK.truecolor(128, 128, 128)
-                            );
-                        }
+                    if !line.starts_with("version") {
+                        continue;
                     }
+
+                    let version = line.split('=').nth(1).unwrap().replace('"', "");
+                    if version == env!("CARGO_PKG_VERSION") {
+                        println!("{}", "Up to date!".blue());
+                        break;
+                    }
+
+                    println!(
+                        "{} {}\n {} {}",
+                        "Update available:".green(),
+                        version.to_string().bright_green(),
+                        "Download here:".truecolor(169, 169, 169),
+                        GITHUB_LINK.truecolor(128, 128, 128)
+                    );
                 }
             }
         });
-    }
 
-    let start = SystemTime::now();
-    let seed = start.duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
-    srand(seed);
+        let start = SystemTime::now();
+        let seed = start.duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
+        srand(seed);
+    }
 
     load_images().await;
 

@@ -1,4 +1,4 @@
-//! Parse and store openings
+//! Parse and store ECO opening database
 
 use std::str::from_utf8;
 
