@@ -11,8 +11,6 @@ AI is a minimax search with alpha-beta pruning, move-ordering, and Tomasz Michni
 
 Clone and build using `cargo build`
 
-**Make sure you copy `/assets` from this repo and put it in base directory, else rust will panic!**
-
 ## How the AI works
 
 The AI uses a minimax algorithm to calculate the next best move of a chess game. The algorithm works by trying to minimize your opponents score, while maximizing your own score, thus the minimax name.

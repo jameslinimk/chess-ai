@@ -284,9 +284,15 @@ impl Board {
 
             let top_end = project(end, angle, -7.0);
 
+            draw_triangle(
+                top_end.into(),
+                left_point.into(),
+                right_point.into(),
+                COLOR_ARROW,
+            );
+
             let new_start = project(start, angle, SQUARE_SIZE / 3.0);
             let new_end = project(start, angle, distance(start, end) - 15.0);
-
             draw_line(
                 new_start.0,
                 new_start.1,
@@ -295,14 +301,7 @@ impl Board {
                 10.0,
                 COLOR_ARROW,
             );
-
             draw_circle(new_start.0, new_start.1, 5.0, COLOR_ARROW);
-            draw_triangle(
-                top_end.into(),
-                left_point.into(),
-                right_point.into(),
-                COLOR_ARROW,
-            );
         }
     }
 

@@ -1,3 +1,4 @@
+#[cfg(not(target_family = "wasm"))]
 use std::thread::spawn;
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -16,7 +17,7 @@ use crate::assets::get_audio;
 use crate::board::{Board, BoardState};
 use crate::conf::{
     CENTER_HEIGHT, CENTER_WIDTH, COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN,
-    SQUARE_SIZE, TEST_FEN, WASM,
+    SQUARE_SIZE, TEST_FEN,
 };
 use crate::pieces::piece::Piece;
 use crate::util::{multiline_text_ex, pos_to_board, Button, Loc, Tween};
@@ -315,9 +316,12 @@ impl Game {
             let agent = self.agent;
             let board = self.board.clone();
             self.waiting_on_agent = true;
-            if WASM {
+            #[cfg(target_family = "wasm")]
+            {
                 self.agent_channel.0.send(agent.get_move(&board)).unwrap();
-            } else {
+            }
+            #[cfg(not(target_family = "wasm"))]
+            {
                 let sender = self.agent_channel.0.clone();
                 spawn(move || {
                     sender.send(agent.get_move(&board)).unwrap();

@@ -8,8 +8,6 @@
 //! # Building
 //!
 //! Clone and build using `cargo build`
-//!
-//! **Make sure you copy `/assets` from Github (above) and put it in base directory, else rust will panic!**
 
 #![feature(future_join)]
 
@@ -22,6 +20,7 @@ use macroquad::prelude::{next_frame, Conf};
 use macroquad::rand::srand;
 use macroquad::text::Font;
 use macroquad::window::clear_background;
+use reqwest::get;
 
 pub mod agent;
 pub mod agent_opens;
@@ -37,7 +36,7 @@ pub mod util;
 #[cfg(not(windows))]
 fn config() -> Conf {
     Conf {
-        window_title: "Chess AI".to_owned(),
+        window_title: "Chess AI".to_string(),
         window_width: WIDTH,
         window_height: HEIGHT,
         window_resizable: false,
@@ -66,12 +65,13 @@ fn config() -> Conf {
     }
 
     Conf {
-        window_title: "Chess AI".to_owned(),
+        window_title: "Chess AI".to_string(),
         window_width: WIDTH,
         window_height: HEIGHT,
         window_resizable: false,
         icon: Some(Icon {
-            small: image!("../assets/icon-16.png")            medium: image!("../assets/icon-32.png"),
+            small: image!("../assets/icon-16.png"),
+            medium: image!("../assets/icon-32.png"),
             big: image!("../assets/icon-64.png"),
         }),
         ..Default::default()
@@ -154,8 +154,25 @@ async fn load_images() {
     .await;
 }
 
+pub const CONFIG_LINK: &str = "https://raw.githubusercontent.com/jameslinimk/chess-ai/master/Cargo.toml?token=GHSAT0AAAAAABXPJT463Q2ABTUFMIZ5FB3IY4STF7A";
+
 #[macroquad::main(config)]
 async fn main() {
+    let resp = match get(CONFIG_LINK).await {
+        Ok(res) => {
+            for line in res
+                .text()
+                .await
+                .unwrap()
+                .lines()
+                .map(|l| l.replace(' ', ""))
+            {
+                println!("line: {:?}", line);
+            }
+        }
+        Err(_) => {}
+    };
+
     let start = SystemTime::now();
     let seed = start.duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
     srand(seed);

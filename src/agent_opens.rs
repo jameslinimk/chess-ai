@@ -1,3 +1,5 @@
+//! Parse and store openings
+
 use std::str::from_utf8;
 
 use lazy_static::lazy_static;
