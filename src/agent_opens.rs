@@ -3,37 +3,24 @@
 use std::str::from_utf8;
 
 use lazy_static::lazy_static;
-use serde::Deserialize;
+use rustc_hash::FxHashMap;
 use serde_json::from_str;
 
-use crate::board::Board;
 use crate::util::Loc;
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct Opening {
-    /// Name of the opening
-    pub name: String,
-    /// List of moves the the full opening
-    pub moves: Vec<(Loc, Loc)>,
-}
-
-impl Board {
-    pub fn update_opens(&mut self) {
-        self.openings.retain(|open| {
-            open.moves.starts_with(&self.move_history) && open.moves.len() > self.move_history.len()
-        });
-    }
-}
+type Openings = FxHashMap<u64, Vec<(String, (Loc, Loc))>>;
 
 lazy_static! {
-    pub static ref OPENINGS: Vec<Opening> =
+    pub static ref OPENINGS: Openings =
         from_str(from_utf8(include_bytes!("../assets/openings.json")).unwrap()).unwrap();
 }
 
 #[test]
 fn create_openings() {
     use std::fs::{read_to_string, write};
+    use std::hash::{Hash, Hasher};
 
+    use rustc_hash::FxHasher;
     use serde::{Deserialize, Serialize};
     use serde_json::{from_str, to_string};
 
@@ -41,30 +28,23 @@ fn create_openings() {
     use crate::board_extras::char_to_piece;
     use crate::conf::TEST_FEN;
     use crate::pieces::piece::PieceNames;
-    use crate::{color_ternary, loc, ternary};
+    use crate::{color_ternary, hashmap, loc, ternary};
 
     #[derive(Serialize, Deserialize, Debug)]
-    pub struct Opening {
+    pub struct RawOpening {
         name: String,
         code: String,
         moves: Vec<String>,
     }
 
-    #[derive(Serialize, Debug)]
-    pub struct NewOpening {
-        name: String,
-        moves: Vec<(Loc, Loc)>,
-    }
-
-    let mut new_openings: Vec<NewOpening> = vec![];
+    let mut new_openings: Openings = hashmap! {};
 
     let openings =
-        from_str::<Vec<Opening>>(&read_to_string("openings/openings.json").unwrap()).unwrap();
+        from_str::<Vec<RawOpening>>(&read_to_string("openings/openings.json").unwrap()).unwrap();
 
     for opening in openings.iter() {
         let mut board = Board::from_fen(TEST_FEN);
 
-        let mut new_moves = vec![];
         #[allow(clippy::never_loop)]
         for (i, raw_ms) in opening.moves.iter().enumerate() {
             let turn = ternary!(i % 2 == 0, ChessColor::White, ChessColor::Black);
@@ -197,14 +177,17 @@ fn create_openings() {
                 panic!("Not implemented! {} {} {}", move_string, i, opening.name);
             };
 
-            board.move_piece(&from, &to, true);
-            new_moves.push((from, to));
-        }
+            let mut hasher = FxHasher::default();
+            board.raw.hash(&mut hasher);
+            let hash = hasher.finish();
+            if let Some(vec) = new_openings.get_mut(&hash) {
+                vec.push((opening.name.clone(), (from, to)));
+            } else {
+                new_openings.insert(hash, vec![(opening.name.clone(), (from, to))]);
+            }
 
-        new_openings.push(NewOpening {
-            name: opening.name.clone(),
-            moves: new_moves,
-        });
+            board.move_piece(&from, &to, true);
+        }
     }
 
     write(

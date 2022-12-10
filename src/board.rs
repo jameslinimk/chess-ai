@@ -1,7 +1,6 @@
 use derive_new::new;
 use rustc_hash::FxHashSet;
 
-use crate::agent_opens::{Opening, OPENINGS};
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::Loc;
 use crate::{color_ternary, hashset, loc};
@@ -134,12 +133,6 @@ pub struct Board {
     #[new(value = "[None; 12]")]
     pub prev_states: [Option<SimpleBoard>; 12],
 
-    #[new(value = "vec![]")]
-    pub move_history: Vec<(Loc, Loc)>,
-
-    #[new(value = "OPENINGS.clone()")]
-    pub openings: Vec<Opening>,
-
     /// Updates on piece capture or pawn move
     #[new(value = "0")]
     pub fifty_rule: u32,
@@ -154,10 +147,6 @@ impl Board {
         if self.get(from).is_none() {
             return false;
         }
-
-        // Add to move history
-        self.move_history.push((*from, *to));
-        self.update_opens();
 
         let (capture, capture_pos) = self.is_capture(from, to);
 
