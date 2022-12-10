@@ -48,7 +48,6 @@ fn minimax(
         if let Some(moves) = OPENINGS.get(&hasher.finish()) {
             let (name, mov) = choose_array(moves);
             println!("Opening found! {}", name);
-            println!("{}", moves.len());
             return (i32::MAX, Some(*mov));
         }
     }
