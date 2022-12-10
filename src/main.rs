@@ -51,6 +51,7 @@ fn config() -> Conf {
         window_title: "Chess AI".to_string(),
         window_width: WIDTH,
         window_height: HEIGHT,
+        window_resizable: false,
         ..Default::default()
     }
 }
@@ -79,6 +80,7 @@ fn config() -> Conf {
         window_title: "Chess AI".to_string(),
         window_width: WIDTH,
         window_height: HEIGHT,
+        window_resizable: false,
         icon: Some(Icon {
             small: image!("../assets/icon-16.png"),
             medium: image!("../assets/icon-32.png"),
@@ -135,31 +137,37 @@ async fn load_images() {
 
     macro_rules! load {
         ($path: expr) => {
-            load_image_from_bytes($path, include_bytes!(concat!("../", $path)))
+            load_image_from_bytes(
+                concat!("assets/pieces/", $path),
+                include_bytes!(concat!("../assets/pieces/", $path)),
+            )
         };
     }
 
     macro_rules! load_audio {
         ($path: expr) => {
-            load_audio_from_bytes($path, include_bytes!(concat!("../", $path)))
+            load_audio_from_bytes(
+                concat!("assets/sounds/", $path),
+                include_bytes!(concat!("../assets/sounds/", $path)),
+            )
         };
     }
 
     join!(
-        load!("assets/pieces/black_pawn.png"),
-        load!("assets/pieces/black_knight.png"),
-        load!("assets/pieces/black_bishop.png"),
-        load!("assets/pieces/black_rook.png"),
-        load!("assets/pieces/black_queen.png"),
-        load!("assets/pieces/black_king.png"),
-        load!("assets/pieces/white_pawn.png"),
-        load!("assets/pieces/white_knight.png"),
-        load!("assets/pieces/white_bishop.png"),
-        load!("assets/pieces/white_rook.png"),
-        load!("assets/pieces/white_queen.png"),
-        load!("assets/pieces/white_king.png"),
-        load_audio!("assets/sounds/move.wav"),
-        load_audio!("assets/sounds/capture.wav"),
+        load!("black_pawn.png"),
+        load!("black_knight.png"),
+        load!("black_bishop.png"),
+        load!("black_rook.png"),
+        load!("black_queen.png"),
+        load!("black_king.png"),
+        load!("white_pawn.png"),
+        load!("white_knight.png"),
+        load!("white_bishop.png"),
+        load!("white_rook.png"),
+        load!("white_queen.png"),
+        load!("white_king.png"),
+        load_audio!("move.wav"),
+        load_audio!("capture.wav"),
     )
     .await;
 }
