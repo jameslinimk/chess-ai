@@ -12,28 +12,12 @@
 #![feature(future_join)]
 
 #[cfg(not(target_family = "wasm"))]
-use std::thread::spawn;
-#[cfg(not(target_family = "wasm"))]
-use std::time::{SystemTime, UNIX_EPOCH};
-
-#[cfg(not(target_family = "wasm"))]
 use colored::{Color, Colorize};
 use conf::{COLOR_BACKGROUND, HEIGHT, WIDTH};
 use game::Game;
-#[cfg(not(target_family = "wasm"))]
-use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::{next_frame, Conf};
-#[cfg(not(target_family = "wasm"))]
-use macroquad::prelude::{Color as MacroColor, GRAY};
-#[cfg(not(target_family = "wasm"))]
-use macroquad::rand::srand;
 use macroquad::text::Font;
 use macroquad::window::clear_background;
-#[cfg(not(target_family = "wasm"))]
-use reqwest::blocking::get;
-
-#[cfg(not(target_family = "wasm"))]
-use crate::conf::{COLOR_BLACK, COLOR_WHITE};
 
 pub mod agent;
 pub mod agent_opens;
@@ -62,6 +46,7 @@ fn config() -> Conf {
     use std::io::Cursor;
 
     use image::io::Reader;
+    use macroquad::miniquad::conf::Icon;
 
     macro_rules! image {
         ($path: expr) => {
@@ -177,7 +162,7 @@ pub const CONFIG_LINK: &str = "https://github.com/jameslinimk/chess-ai/raw/maste
 pub const GITHUB_LINK: &str = "https://github.com/jameslinimk/chess-ai";
 
 #[cfg(not(target_family = "wasm"))]
-fn color_convert(color: MacroColor) -> Color {
+fn color_convert(color: macroquad::prelude::Color) -> Color {
     Color::TrueColor {
         r: (color.r * 255.0) as u8,
         g: (color.g * 255.0) as u8,
@@ -189,6 +174,15 @@ fn color_convert(color: MacroColor) -> Color {
 async fn main() {
     #[cfg(not(target_family = "wasm"))]
     {
+        use std::thread::spawn;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        use macroquad::prelude::GRAY;
+        use macroquad::rand::srand;
+        use reqwest::blocking::get;
+
+        use crate::conf::{COLOR_BLACK, COLOR_WHITE};
+
         println!(
             "{}\n{}\n{}\n{}",
             "=====================================================".color(color_convert(GRAY)),
