@@ -288,7 +288,7 @@ impl Game {
         self.update_buttons();
         self.update_arrows_highlights();
 
-        if self.board.turn == self.board.player_color {
+        if self.agent == Agent::Control || self.board.turn == self.board.player_color {
             if let Some(clicked) = self.get_clicked_square(MouseButton::Left) {
                 // Click same place
                 if self.selected.is_some() && self.selected.unwrap().pos == clicked {

@@ -159,16 +159,16 @@ impl Board {
             if piece.name == PieceNames::Rook {
                 match piece.color {
                     ChessColor::White => {
-                        if capture_pos == loc!(0, 0) {
+                        if piece.pos == loc!(0, 7) {
                             self.castle_white.0 = false;
-                        } else if capture_pos == loc!(7, 0) {
+                        } else if piece.pos == loc!(7, 7) {
                             self.castle_white.1 = false;
                         }
                     }
                     ChessColor::Black => {
-                        if capture_pos == loc!(0, 7) {
+                        if piece.pos == loc!(0, 0) {
                             self.castle_black.0 = false;
-                        } else if capture_pos == loc!(7, 7) {
+                        } else if piece.pos == loc!(7, 0) {
                             self.castle_black.1 = false;
                         }
                     }

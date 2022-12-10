@@ -190,6 +190,7 @@ impl Board {
     }
 
     /// Draws the board to the screen
+    #[allow(unused)]
     pub fn draw(
         &self,
         highlight_moves: &[Loc],
@@ -224,27 +225,41 @@ impl Board {
             for (x, square) in row.iter().enumerate() {
                 // Draw piece
                 if let Some(piece) = square {
-                    let mut tweened = false;
-                    if let Some((loc, tween)) = current_tween {
-                        if loc == &loc!(x, y) {
-                            let (x, y) = tween.update();
-                            draw_texture(
-                                piece.get_image(),
-                                MARGIN + SQUARE_SIZE * x,
-                                MARGIN + SQUARE_SIZE * y,
-                                WHITE,
-                            );
-                            tweened = true;
-                        }
-                    }
-
-                    if !tweened {
+                    #[cfg(target_family = "wasm")]
+                    {
                         draw_texture(
                             piece.get_image(),
                             MARGIN + SQUARE_SIZE * x as f32,
                             MARGIN + SQUARE_SIZE * y as f32,
                             WHITE,
                         )
+                    }
+
+                    #[cfg(not(target_family = "wasm"))]
+                    {
+                        let mut tweened = false;
+
+                        if let Some((loc, tween)) = current_tween {
+                            if loc == &loc!(x, y) {
+                                let (x, y) = tween.update();
+                                draw_texture(
+                                    piece.get_image(),
+                                    MARGIN + SQUARE_SIZE * x,
+                                    MARGIN + SQUARE_SIZE * y,
+                                    WHITE,
+                                );
+                                tweened = true;
+                            }
+                        }
+
+                        if !tweened {
+                            draw_texture(
+                                piece.get_image(),
+                                MARGIN + SQUARE_SIZE * x as f32,
+                                MARGIN + SQUARE_SIZE * y as f32,
+                                WHITE,
+                            )
+                        }
                     }
                 }
             }

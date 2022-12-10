@@ -11,7 +11,6 @@
 //!
 //! - Just picks a valid move by random
 
-use lazy_static::lazy_static;
 use macroquad::rand::ChooseRandom;
 use rustc_hash::FxHashMap;
 
@@ -101,10 +100,11 @@ pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
     best_move
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// List of agents for [Board] to use
 pub enum Agent {
     Minimax,
+    Control,
     Random,
 }
 impl Agent {
@@ -112,13 +112,13 @@ impl Agent {
         match self {
             Agent::Minimax => minimax_agent(board),
             Agent::Random => random_agent(board),
+            Agent::Control => None,
         }
     }
 }
 
-lazy_static! {
-    pub static ref AGENTS: FxHashMap<&'static str, Agent> = hashmap! {
-        "Minimax" => Agent::Minimax,
-        "Random" => Agent::Random,
-    };
-}
+pub const AGENTS: [(&str, Agent); 3] = [
+    ("Random", Agent::Random),
+    ("Control", Agent::Control),
+    ("Minimax", Agent::Minimax),
+];
