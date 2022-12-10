@@ -140,6 +140,9 @@ pub struct Board {
     /// Wether the game is endgame or not
     #[new(value = "false")]
     pub endgame: bool,
+
+    #[new(value = "0")]
+    pub hash: u64,
 }
 impl Board {
     /// Moves the piece in `from` to `to`
@@ -235,13 +238,11 @@ impl Board {
             let mut queens = 0;
             let mut minors = 0;
 
-            for row in self.raw.iter() {
-                for piece in row.iter().flatten() {
-                    match piece.name {
-                        PieceNames::Bishop | PieceNames::Knight => minors += 1,
-                        PieceNames::Queen => queens += 1,
-                        _ => {}
-                    }
+            for piece in self.raw.iter().flatten().flatten() {
+                match piece.name {
+                    PieceNames::Bishop | PieceNames::Knight => minors += 1,
+                    PieceNames::Queen => queens += 1,
+                    _ => {}
                 }
             }
 
@@ -250,6 +251,9 @@ impl Board {
 
         // Set score (relies on state, endgame)
         self.score = self.get_score();
+
+        // Set hash (relies on nothing)
+        self.hash = self.get_hash();
     }
 
     /// Detect wether the players are in check, checkmate or stalemate
@@ -270,6 +274,12 @@ impl Board {
                     return;
                 }
             }
+        }
+
+        // Draw by insufficient material
+        if self.raw.iter().flatten().flatten().count() == 2 {
+            self.state = BoardState::Draw;
+            return;
         }
 
         // Others

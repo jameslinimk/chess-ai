@@ -198,15 +198,14 @@ pub const STALEMATE_VALUE: i32 = -100;
 impl Board {
     pub fn get_sorted_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
         let mut moves = vec![];
-        for row in self.raw.iter() {
-            for piece in row.iter().flatten() {
-                if piece.color == color {
-                    for m in piece.get_moves(self) {
-                        moves.push((piece.pos, m));
-                    }
+        for piece in self.raw.iter().flatten().flatten() {
+            if piece.color == color {
+                for m in piece.get_moves(self) {
+                    moves.push((piece.pos, m));
                 }
             }
         }
+
         moves.sort_unstable_by(|a, b| {
             self.move_value(&b.0, &b.1)
                 .cmp(&self.move_value(&a.0, &a.1))
@@ -230,11 +229,9 @@ impl Board {
         let mut score = 0;
 
         // Add value based on pieces
-        for row in self.raw.iter() {
-            for piece in row.iter().flatten() {
-                let value = full_piece_value(piece, self.endgame);
-                color_ternary!(piece.color, score += value, score -= value);
-            }
+        for piece in self.raw.iter().flatten().flatten() {
+            let value = full_piece_value(piece, self.endgame);
+            color_ternary!(piece.color, score += value, score -= value);
         }
 
         if let BoardState::Check(check_color) = self.state {

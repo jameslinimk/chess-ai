@@ -2,24 +2,23 @@
 //!
 //! # Minimax
 //!
+//! - Stored openings
 //! - Alpha-beta pruning
 //! - Sorted move ordering
-//! - Stored openings
+//! - Transposition table
 //!
 //! # Random
 //!
 //! - Just picks a valid move by random
 
-use std::hash::{Hash, Hasher};
-
 use lazy_static::lazy_static;
 use macroquad::rand::ChooseRandom;
-use rustc_hash::{FxHashMap, FxHasher};
+use rustc_hash::FxHashMap;
 
 use crate::agent_opens::OPENINGS;
 use crate::board::{Board, ChessColor};
 use crate::util::{choose_array, Loc};
-use crate::{color_ternary, hashmap};
+use crate::{color_ternary, hashmap, ternary};
 
 pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
     let moves = board.get_moves(board.agent_color);
@@ -29,12 +28,14 @@ pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
 pub const DEPTH: u8 = 4;
 
 /// Minimax agent with alpha-beta pruning and sorted move ordering
+#[allow(clippy::type_complexity)]
 fn minimax(
     board: &Board,
     maximizing: bool,
     depth: u8,
     mut alpha: i32,
     mut beta: i32,
+    trans: &mut FxHashMap<u64, (i32, Option<(Loc, Loc)>)>,
 ) -> (i32, Option<(Loc, Loc)>) {
     // Base case
     if depth == 0 || board.is_over() {
@@ -43,13 +44,14 @@ fn minimax(
 
     // First move for white
     if depth == DEPTH {
-        let mut hasher = FxHasher::default();
-        board.raw.hash(&mut hasher);
-        if let Some(moves) = OPENINGS.get(&hasher.finish()) {
-            let (name, mov) = choose_array(moves);
-            println!("Opening found! {}", name);
-            return (i32::MAX, Some(*mov));
+        if let Some(moves) = OPENINGS.get(&board.hash) {
+            println!("Opening found!");
+            return (i32::MAX, Some(*choose_array(moves)));
         }
+    }
+
+    if let Some((score, best)) = trans.get(&board.hash) {
+        return (*score, *best);
     }
 
     let moves = color_ternary!(
@@ -58,64 +60,44 @@ fn minimax(
         board.get_sorted_moves(ChessColor::Black)
     );
 
-    if maximizing {
-        let mut max_score = i32::MIN;
-        let mut best_move = None;
+    let mut best_score = ternary!(maximizing, i32::MIN, i32::MAX);
+    let mut best_move = None;
 
-        for (from, to) in moves.iter() {
-            let mut test_board = board.clone();
-            test_board.move_piece(from, to, false);
+    for (from, to) in moves.iter() {
+        let mut test_board = board.clone();
+        test_board.move_piece(from, to, false);
 
-            let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
+        let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta, trans);
 
-            if score == i32::MAX {
-                return (score, Some((*from, *to)));
+        if score == i32::MAX {
+            return (score, Some((*from, *to)));
+        }
+
+        if ternary!(maximizing, score > best_score, score < best_score) {
+            best_score = score;
+            best_move = Some((*from, *to));
+        }
+
+        if maximizing {
+            alpha = alpha.max(best_score);
+            if beta <= alpha {
+                break;
             }
-
-            if score > max_score {
-                max_score = score;
-                best_move = Some((*from, *to));
-            }
-
-            alpha = alpha.max(max_score);
+        } else {
+            beta = beta.min(best_score);
             if beta <= alpha {
                 break;
             }
         }
-
-        (max_score, best_move)
-    } else {
-        let mut min_score = i32::MAX;
-        let mut best_move = None;
-
-        for (from, to) in moves.iter() {
-            let mut test_board = board.clone();
-            test_board.move_piece(from, to, false);
-
-            let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta);
-
-            if score == i32::MAX {
-                return (score, Some((*from, *to)));
-            }
-
-            if score < min_score {
-                min_score = score;
-                best_move = Some((*from, *to));
-            }
-
-            beta = beta.min(min_score);
-            if beta <= alpha {
-                break;
-            }
-        }
-
-        (min_score, best_move)
     }
+
+    trans.insert(board.hash, (best_score, best_move));
+    (best_score, best_move)
 }
 
 /// Wrapper for minimax
 pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
-    let (_, best_move) = minimax(board, false, DEPTH, i32::MIN, i32::MAX);
+    let (_, best_move) = minimax(board, false, DEPTH, i32::MIN, i32::MAX, &mut hashmap! {});
     best_move
 }
 

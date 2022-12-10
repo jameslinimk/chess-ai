@@ -3,11 +3,12 @@
 //! Extra fen and util functions for [Board]
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, PI};
+use std::hash::{Hash, Hasher};
 
 use macroquad::prelude::WHITE;
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_triangle};
 use macroquad::texture::draw_texture;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::board::{Board, BoardState, ChessColor, SimpleBoard};
 use crate::conf::{
@@ -331,15 +332,13 @@ impl Board {
     pub fn get_kings(&self) -> (Option<Loc>, Option<Loc>) {
         let mut white_king = None;
         let mut black_king = None;
-        for row in self.raw.iter() {
-            for piece in row.iter().flatten() {
-                if piece.name == PieceNames::King {
-                    color_ternary!(
-                        piece.color,
-                        white_king = Some(piece.pos),
-                        black_king = Some(piece.pos)
-                    );
-                }
+        for piece in self.raw.iter().flatten().flatten() {
+            if piece.name == PieceNames::King {
+                color_ternary!(
+                    piece.color,
+                    white_king = Some(piece.pos),
+                    black_king = Some(piece.pos)
+                );
             }
         }
         (white_king, black_king)
@@ -347,11 +346,9 @@ impl Board {
 
     pub fn get_attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
         let mut attacks = hashset! {};
-        for row in self.raw.iter() {
-            for piece in row.iter().flatten() {
-                if piece.color == color {
-                    attacks.extend(piece.get_attacks(self));
-                }
+        for piece in self.raw.iter().flatten().flatten() {
+            if piece.color == color {
+                attacks.extend(piece.get_attacks(self));
             }
         }
         attacks
@@ -368,12 +365,10 @@ impl Board {
 
     pub fn get_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
         let mut moves = vec![];
-        for row in self.raw.iter() {
-            for piece in row.iter().flatten() {
-                if piece.color == color {
-                    for m in piece.get_moves(self) {
-                        moves.push((piece.pos, m));
-                    }
+        for piece in self.raw.iter().flatten().flatten() {
+            if piece.color == color {
+                for m in piece.get_moves(self) {
+                    moves.push((piece.pos, m));
                 }
             }
         }
@@ -398,6 +393,15 @@ impl Board {
             castle_white: self.castle_white,
             en_passent: self.en_passent,
         }
+    }
+
+    pub fn get_hash(&self) -> u64 {
+        let mut hasher = FxHasher::default();
+        self.raw.hash(&mut hasher);
+        self.castle_white.hash(&mut hasher);
+        self.castle_black.hash(&mut hasher);
+        self.en_passent.hash(&mut hasher);
+        hasher.finish()
     }
 }
 

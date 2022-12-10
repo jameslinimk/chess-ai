@@ -8,7 +8,7 @@ use serde_json::from_str;
 
 use crate::util::Loc;
 
-type Openings = FxHashMap<u64, Vec<(String, (Loc, Loc))>>;
+type Openings = FxHashMap<u64, Vec<(Loc, Loc)>>;
 
 lazy_static! {
     pub static ref OPENINGS: Openings =
@@ -18,9 +18,7 @@ lazy_static! {
 #[test]
 fn create_openings() {
     use std::fs::{read_to_string, write};
-    use std::hash::{Hash, Hasher};
 
-    use rustc_hash::FxHasher;
     use serde::{Deserialize, Serialize};
     use serde_json::{from_str, to_string};
 
@@ -177,13 +175,10 @@ fn create_openings() {
                 panic!("Not implemented! {} {} {}", move_string, i, opening.name);
             };
 
-            let mut hasher = FxHasher::default();
-            board.raw.hash(&mut hasher);
-            let hash = hasher.finish();
-            if let Some(vec) = new_openings.get_mut(&hash) {
-                vec.push((opening.name.clone(), (from, to)));
+            if let Some(vec) = new_openings.get_mut(&board.hash) {
+                vec.push((from, to));
             } else {
-                new_openings.insert(hash, vec![(opening.name.clone(), (from, to))]);
+                new_openings.insert(board.hash, vec![(from, to)]);
             }
 
             board.move_piece(&from, &to, true);
