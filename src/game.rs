@@ -107,10 +107,7 @@ impl Game {
         self.highlights.clear();
         self.arrows.clear();
         self.last_move = Some((*from, *to));
-        self.current_tween = Some((
-            *to,
-            Tween::new(from.as_tuple_f32(), to.as_tuple_f32(), 20.0),
-        ));
+        self.current_tween = Some((*to, Tween::new(from.as_f32(), to.as_f32(), 20.0)));
 
         // See if move was capture
         if capture {

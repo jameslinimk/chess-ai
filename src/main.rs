@@ -10,6 +10,7 @@
 //! Clone and build using `cargo build`
 
 #![feature(future_join)]
+
 #[cfg(not(target_family = "wasm"))]
 use std::thread::spawn;
 #[cfg(not(target_family = "wasm"))]

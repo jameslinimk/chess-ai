@@ -8,7 +8,7 @@ use crate::board::{Board, ChessColor};
 use crate::util::Loc;
 
 pub fn valid_pos(location: &Loc) -> bool {
-    !(location.x >= 8 || location.y >= 8)
+    !(location.0 >= 8 || location.1 >= 8)
 }
 
 /// Adds to moves if the move is valid and doesn't capture friendly

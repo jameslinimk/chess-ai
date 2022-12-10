@@ -188,7 +188,7 @@ pub fn piece_value(piece: &PieceNames) -> i32 {
 }
 
 pub fn full_piece_value(piece: &Piece, endgame: bool) -> i32 {
-    piece_value(&piece.name) + piece_table(piece, endgame)[piece.pos.y][piece.pos.x]
+    piece_value(&piece.name) + piece_table(piece, endgame)[piece.pos.1][piece.pos.0]
 }
 
 pub const CHECK_VALUE: i32 = 50;
@@ -253,7 +253,7 @@ impl Board {
         };
 
         // Pawn promotion
-        if piece.name == PieceNames::Pawn && (piece.pos.y == 7 || piece.pos.y == 0) {
+        if piece.name == PieceNames::Pawn && (piece.pos.1 == 7 || piece.pos.1 == 0) {
             return i32::MAX;
         }
 

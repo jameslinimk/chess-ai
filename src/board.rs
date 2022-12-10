@@ -326,7 +326,7 @@ impl Board {
 
     // Move the piece in `from` to `to` without updating anything
     fn move_raw(&mut self, from: &Loc, to: &Loc) {
-        if let Some(piece) = self.raw[from.y][from.x].as_mut() {
+        if let Some(piece) = self.raw[from.1][from.0].as_mut() {
             piece.pos = *to;
         }
 
@@ -340,9 +340,9 @@ impl Board {
         }
 
         if let Some(piece) = self.get(from) {
-            if piece.name == PieceNames::Pawn && from.x.abs_diff(to.x) == 1 {
+            if piece.name == PieceNames::Pawn && from.0.abs_diff(to.0) == 1 {
                 if let Some((loc, color)) = self.en_passent {
-                    if to.x == loc.x && to.y.abs_diff(loc.y) == 1 && piece.color != color {
+                    if to.0 == loc.0 && to.1.abs_diff(loc.1) == 1 && piece.color != color {
                         return (true, loc);
                     }
                 }
@@ -357,7 +357,7 @@ impl Board {
     fn move_actions(&mut self, from: &Loc, to: &Loc) {
         let mut set_en_passent = false;
 
-        if let Some(piece) = self.raw[from.y][from.x].as_mut() {
+        if let Some(piece) = self.raw[from.1][from.0].as_mut() {
             piece.pos = *to;
 
             match piece.name {
@@ -368,10 +368,10 @@ impl Board {
                         ChessColor::White => self.castle_white = (false, false),
                     }
 
-                    if from.x.abs_diff(to.x) == 2 {
-                        let (rook_from, rook_to) = match to.x {
-                            2 => (loc!(0, to.y), loc!(3, to.y)),
-                            6 => (loc!(7, to.y), loc!(5, to.y)),
+                    if from.0.abs_diff(to.0) == 2 {
+                        let (rook_from, rook_to) = match to.0 {
+                            2 => (loc!(0, to.1), loc!(3, to.1)),
+                            6 => (loc!(7, to.1), loc!(5, to.1)),
                             _ => panic!(),
                         };
 
@@ -389,20 +389,20 @@ impl Board {
                 // En passent check
                 PieceNames::Pawn => {
                     // Promotion
-                    if to.y == 0 || to.y == 7 {
+                    if to.1 == 0 || to.1 == 7 {
                         piece.name = PieceNames::Queen;
                     }
 
                     // Setting en passent
-                    if from.y.abs_diff(to.y) == 2 {
+                    if from.1.abs_diff(to.1) == 2 {
                         self.en_passent = Some((*to, piece.color));
                         set_en_passent = true;
                     }
 
                     // En passent capture
-                    if from.x.abs_diff(to.x) == 1 {
+                    if from.0.abs_diff(to.0) == 1 {
                         if let Some((loc, color)) = self.en_passent {
-                            if to.x == loc.x && to.y.abs_diff(loc.y) == 1 && piece.color != color {
+                            if to.0 == loc.0 && to.1.abs_diff(loc.1) == 1 && piece.color != color {
                                 self.set(&loc, None);
                             }
                         }

@@ -359,11 +359,11 @@ impl Board {
 
     /* ----------------------------- Util functions ----------------------------- */
     pub fn get(&self, loc: &Loc) -> Option<Piece> {
-        self.raw[loc.y][loc.x]
+        self.raw[loc.1][loc.0]
     }
 
     pub fn set(&mut self, loc: &Loc, value: Option<Piece>) {
-        self.raw[loc.y][loc.x] = value;
+        self.raw[loc.1][loc.0] = value;
     }
 
     pub fn get_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {

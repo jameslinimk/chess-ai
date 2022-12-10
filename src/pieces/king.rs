@@ -29,7 +29,7 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
         ($start: expr, $end: expr) => {
             'main: {
                 for i in $start..=$end {
-                    if board.get(&loc!(i, piece.pos.y)).is_some() {
+                    if board.get(&loc!(i, piece.pos.1)).is_some() {
                         break 'main true;
                     }
                 }
@@ -39,11 +39,11 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     }
 
     if queen_side && !clear_range!(1, 3) {
-        moves.push(loc!(2, piece.pos.y));
+        moves.push(loc!(2, piece.pos.1));
     }
 
     if king_side && !clear_range!(5, 6) {
-        moves.push(loc!(6, piece.pos.y));
+        moves.push(loc!(6, piece.pos.1));
     }
 
     moves

@@ -1,5 +1,4 @@
 use std::f32::consts::PI;
-use std::fmt;
 
 use derive_new::new;
 use macroquad::prelude::{
@@ -48,7 +47,7 @@ pub fn validate_fen(fen: &str) -> bool {
 #[macro_export]
 macro_rules! loc {
     ($x: expr, $y: expr) => {
-        $crate::util::Loc { x: $x, y: $y }
+        $crate::util::Loc($x, $y)
     };
 }
 
@@ -90,22 +89,14 @@ macro_rules! hashset {
     };
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 /// A Vec2 with usize values and utility functions for chess board stuff
-pub struct Loc {
-    pub x: usize,
-    pub y: usize,
-}
-impl fmt::Debug for Loc {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}, {})", self.x, self.y)
-    }
-}
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct Loc(pub usize, pub usize);
 impl Loc {
     /// Create a new `Loc`, shifted `x_diff` and `y_diff` away from the current pos
     pub fn copy_move_i32(&self, x_diff: i32, y_diff: i32) -> (Loc, bool) {
-        let mut new_x = self.x as i32 + x_diff;
-        let mut new_y = self.y as i32 + y_diff;
+        let mut new_x = self.0 as i32 + x_diff;
+        let mut new_y = self.1 as i32 + y_diff;
 
         if new_x < 0 || new_y < 0 {
             new_x = new_x.clamp(0, i32::MAX);
@@ -118,24 +109,24 @@ impl Loc {
 
     /// Move the current pos by `x_diff` and `y_diff`
     pub fn move_i32(&mut self, x_diff: i32, y_diff: i32) -> bool {
-        let new_x = self.x as i32 + x_diff;
-        let new_y = self.y as i32 + y_diff;
+        let new_x = self.0 as i32 + x_diff;
+        let new_y = self.1 as i32 + y_diff;
 
         if new_x < 0 || new_y < 0 {
-            self.x = new_x.clamp(0, i32::MAX) as usize;
-            self.y = new_y.clamp(0, i32::MAX) as usize;
+            self.0 = new_x.clamp(0, i32::MAX) as usize;
+            self.1 = new_y.clamp(0, i32::MAX) as usize;
             return false;
         }
 
-        self.x = new_x as usize;
-        self.y = new_y as usize;
+        self.0 = new_x as usize;
+        self.1 = new_y as usize;
         true
     }
 
     /// Get the location as chess notation IE (`(0, 0)` becomes `"A8"`)
     pub fn as_notation(&self) -> String {
-        let x = char::from_u32(self.x as u32 + 97).unwrap();
-        let y = match self.y {
+        let x = char::from_u32(self.0 as u32 + 97).unwrap();
+        let y = match self.1 {
             0 => '8',
             1 => '7',
             2 => '6',
@@ -167,12 +158,9 @@ impl Loc {
         loc!(x as usize, y)
     }
 
-    pub fn as_tuple(&self) -> (usize, usize) {
-        (self.x, self.y)
-    }
-
-    pub fn as_tuple_f32(&self) -> (f32, f32) {
-        (self.x as f32, self.y as f32)
+    /// Convert the `Loc` to a `(f32, f32)`
+    pub fn as_f32(&self) -> (f32, f32) {
+        (self.0 as f32, self.1 as f32)
     }
 }
 
@@ -237,8 +225,8 @@ pub fn pos_to_board(pos: (f32, f32)) -> Option<Loc> {
 /// Converts a board location to a position on the screen
 pub fn board_to_pos_center(loc: &Loc) -> (f32, f32) {
     (
-        loc.x as f32 * SQUARE_SIZE + MARGIN + SQUARE_SIZE / 2.0,
-        loc.y as f32 * SQUARE_SIZE + MARGIN + SQUARE_SIZE / 2.0,
+        loc.0 as f32 * SQUARE_SIZE + MARGIN + SQUARE_SIZE / 2.0,
+        loc.1 as f32 * SQUARE_SIZE + MARGIN + SQUARE_SIZE / 2.0,
     )
 }
 

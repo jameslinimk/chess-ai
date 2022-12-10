@@ -156,7 +156,7 @@ fn create_openings() {
                         let pos = Loc::from_notation(&chars.collect::<String>());
                         for mov in legal_moves.iter() {
                             if let Some(piece) = board.get(&mov.0) {
-                                if piece.name == name && mov.1 == pos && piece.pos.y == y {
+                                if piece.name == name && mov.1 == pos && piece.pos.1 == y {
                                     break 'main *mov;
                                 }
                             }
@@ -166,7 +166,7 @@ fn create_openings() {
                         let pos = Loc::from_notation(&chars.collect::<String>());
                         for mov in legal_moves.iter() {
                             if let Some(piece) = board.get(&mov.0) {
-                                if piece.name == name && mov.1 == pos && piece.pos.x == x {
+                                if piece.name == name && mov.1 == pos && piece.pos.0 == x {
                                     break 'main *mov;
                                 }
                             }
