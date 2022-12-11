@@ -10,17 +10,24 @@ use crate::util::Loc;
 
 type Openings = FxHashMap<u64, Vec<(Loc, Loc)>>;
 
+#[cfg(not(target_family = "wasm"))]
 lazy_static! {
     pub static ref OPENINGS: Openings =
         from_str(from_utf8(include_bytes!("../assets/openings.json")).unwrap()).unwrap();
 }
 
+#[cfg(target_family = "wasm")]
+lazy_static! {
+    pub static ref OPENINGS: Openings =
+        from_str(from_utf8(include_bytes!("../assets/wasm_openings.json")).unwrap()).unwrap();
+}
+
 #[test]
 fn create_openings() {
-    use std::fs::{read_to_string, write};
+    use std::fs::write;
 
     use serde::{Deserialize, Serialize};
-    use serde_json::{from_str, to_string};
+    use serde_json::to_string;
 
     use crate::board::{Board, ChessColor};
     use crate::board_extras::char_to_piece;
@@ -37,8 +44,10 @@ fn create_openings() {
 
     let mut new_openings: Openings = hashmap! {};
 
-    let openings =
-        from_str::<Vec<RawOpening>>(&read_to_string("openings/openings.json").unwrap()).unwrap();
+    let openings = from_str::<Vec<RawOpening>>(
+        from_utf8(include_bytes!("../openings/openings.json")).unwrap(),
+    )
+    .unwrap();
 
     for opening in openings.iter() {
         let mut board = Board::from_fen(TEST_FEN);
@@ -184,6 +193,8 @@ fn create_openings() {
             board.move_piece(&from, &to, true);
         }
     }
+
+    // info!("{}", to_string(&new_openings).unwrap());
 
     write(
         "assets/openings.json",
