@@ -42,7 +42,7 @@ fn minimax(
         return (board.score, None);
     }
 
-    // First move for white
+    // Openings
     if depth == DEPTH {
         if let Some(moves) = OPENINGS.get(&board.hash) {
             info!("Opening found!");
