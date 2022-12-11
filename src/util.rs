@@ -57,10 +57,10 @@ macro_rules! hashmap {
     (@single $($x:tt)*) => (());
     (@count $($rest:expr),*) => (<[()]>::len(&[$(hashmap!(@single $rest)),*]));
 
-    ($($key:expr => $value:expr,)+) => { hashmap!($($key => $value),+) };
+    ($($key:expr => $value:expr,)+) => { $crate::hashmap!($($key => $value),+) };
     ($($key:expr => $value:expr),*) => {
         {
-            let _cap = hashmap!(@count $($key),*);
+            let _cap = $crate::hashmap!(@count $($key),*);
             let mut _map = rustc_hash::FxHashMap::with_capacity_and_hasher(_cap, Default::default());
             $(
                 let _ = _map.insert($key, $value);
@@ -76,10 +76,10 @@ macro_rules! hashset {
     (@single $($x:tt)*) => (());
     (@count $($rest:expr),*) => (<[()]>::len(&[$(hashset!(@single $rest)),*]));
 
-    ($($key:expr,)+) => { hashset!($($key),+) };
+    ($($key:expr,)+) => { $crate::hashset!($($key),+) };
     ($($key:expr),*) => {
         {
-            let _cap = hashset!(@count $($key),*);
+            let _cap = $crate::hashset!(@count $($key),*);
             let mut _set = rustc_hash::FxHashSet::with_capacity_and_hasher(_cap, Default::default());
             $(
                 let _ = _set.insert($key);

@@ -84,29 +84,6 @@ pub fn get_font() -> Font {
     unsafe { FONT.unwrap() }
 }
 
-#[cfg(target_family = "wasm")]
-async fn load_images() {
-    use macroquad::text::load_ttf_font;
-
-    use crate::assets::{load_audio, load_image};
-
-    // Load chess pieces
-    for color in ["black", "white"].iter() {
-        for piece in ["pawn", "knight", "bishop", "rook", "queen", "king"].iter() {
-            load_image(&format!("assets/pieces/{}_{}.png", color, piece)).await;
-        }
-    }
-    match load_ttf_font("assets/fonts/DejaVuSansMono-Bold.ttf").await {
-        Ok(font) => unsafe {
-            FONT = Some(font);
-        },
-        Err(_) => panic!("Failed to load font"),
-    };
-    load_audio("assets/sounds/move.wav").await;
-    load_audio("assets/sounds/capture.wav").await;
-}
-
-#[cfg(not(target_family = "wasm"))]
 async fn load_images() {
     use std::future::join;
 

@@ -11,6 +11,7 @@
 //!
 //! - Just picks a valid move by random
 
+use macroquad::prelude::info;
 use macroquad::rand::ChooseRandom;
 use rustc_hash::FxHashMap;
 
@@ -34,7 +35,7 @@ fn minimax(
     depth: u8,
     mut alpha: i32,
     mut beta: i32,
-    trans: &mut FxHashMap<u64, (i32, Option<(Loc, Loc)>)>,
+    trans_table: &mut FxHashMap<u64, (u8, i32, Option<(Loc, Loc)>)>,
 ) -> (i32, Option<(Loc, Loc)>) {
     // Base case
     if depth == 0 || board.is_over() {
@@ -44,13 +45,15 @@ fn minimax(
     // First move for white
     if depth == DEPTH {
         if let Some(moves) = OPENINGS.get(&board.hash) {
-            println!("Opening found!");
+            info!("Opening found!");
             return (i32::MAX, Some(*choose_array(moves)));
         }
     }
 
-    if let Some((score, best)) = trans.get(&board.hash) {
-        return (*score, *best);
+    if let Some((dep, score, best)) = trans_table.get(&board.hash) {
+        if dep >= &depth {
+            return (*score, *best);
+        }
     }
 
     let moves = color_ternary!(
@@ -66,7 +69,7 @@ fn minimax(
         let mut test_board = board.clone();
         test_board.move_piece(from, to, false);
 
-        let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta, trans);
+        let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta, trans_table);
 
         if score == i32::MAX {
             return (score, Some((*from, *to)));
@@ -90,7 +93,7 @@ fn minimax(
         }
     }
 
-    trans.insert(board.hash, (best_score, best_move));
+    trans_table.insert(board.hash, (depth, best_score, best_move));
     (best_score, best_move)
 }
 

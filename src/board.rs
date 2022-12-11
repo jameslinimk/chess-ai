@@ -40,23 +40,6 @@ pub enum BoardState {
     Draw,
 }
 
-/// Board that is stripped of non-vital information to compare two boards, used for 3fold repetition check
-#[derive(Clone, Copy, Debug, PartialEq, Eq, new)]
-pub struct SimpleBoard {
-    pub raw: [[Option<Piece>; 8]; 8],
-    pub castle_black: (bool, bool),
-    pub castle_white: (bool, bool),
-    pub en_passent: Option<(Loc, ChessColor)>,
-}
-impl PartialEq<Board> for SimpleBoard {
-    fn eq(&self, other: &Board) -> bool {
-        self.raw == other.raw
-            && self.castle_black == other.castle_black
-            && self.castle_white == other.castle_white
-            && self.en_passent == other.en_passent
-    }
-}
-
 /// Represents a chess board and metadata
 #[derive(Debug, Clone, PartialEq, Eq, new)]
 pub struct Board {
@@ -130,8 +113,8 @@ pub struct Board {
     pub half_moves: u32,
 
     /// Previous board states, used for 3fold check
-    #[new(value = "[None; 12]")]
-    pub prev_states: [Option<SimpleBoard>; 12],
+    #[new(value = "Vec::with_capacity(12)")]
+    pub prev_states: Vec<u64>,
 
     /// Updates on piece capture or pawn move
     #[new(value = "0")]
@@ -187,9 +170,16 @@ impl Board {
         };
         self.half_moves += 1;
 
-        // 3fold repetition
-        self.prev_states.rotate_right(1);
-        self.prev_states[0] = Some(self.as_simple());
+        // Set hash (relies on nothing)
+        self.hash = self.get_hash();
+
+        // 3fold repetition (relies on hash)
+        if self.prev_states.len() == 12 {
+            self.prev_states.rotate_right(0);
+            self.prev_states[0] = self.hash;
+        } else {
+            self.prev_states.push(self.hash);
+        }
 
         // Fifty move rule (pawn move is done in move_actions)
         if capture {
@@ -251,9 +241,6 @@ impl Board {
 
         // Set score (relies on state, endgame)
         self.score = self.get_score();
-
-        // Set hash (relies on nothing)
-        self.hash = self.get_hash();
     }
 
     /// Detect wether the players are in check, checkmate or stalemate
@@ -266,8 +253,8 @@ impl Board {
 
         // 3fold repetition
         let mut sum = 0;
-        for simple in self.prev_states.iter().flatten() {
-            if simple == self {
+        for simple in self.prev_states.iter() {
+            if simple == &self.hash {
                 sum += 1;
                 if sum >= 3 {
                     self.state = BoardState::Draw;

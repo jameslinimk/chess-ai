@@ -10,7 +10,7 @@ use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_rectangl
 use macroquad::texture::draw_texture;
 use rustc_hash::{FxHashSet, FxHasher};
 
-use crate::board::{Board, BoardState, ChessColor, SimpleBoard};
+use crate::board::{Board, BoardState, ChessColor};
 use crate::conf::{
     COLOR_ARROW, COLOR_BLACK, COLOR_HIGHLIGHT, COLOR_LAST_MOVE, COLOR_SELECTED, COLOR_WHITE,
     MARGIN, SQUARE_SIZE,
@@ -200,17 +200,11 @@ impl Board {
         current_tween: &mut Option<(Loc, Tween)>,
     ) {
         for (x, y) in ENUMERATES {
-            let mut color = if (x + y) % 2 == 0 {
+            let color = if (x + y) % 2 == 0 {
                 COLOR_WHITE
             } else {
                 COLOR_BLACK
             };
-
-            if let Some(last_move) = last_move {
-                if last_move.0 == loc!(x, y) || last_move.1 == loc!(x, y) {
-                    color = COLOR_LAST_MOVE;
-                }
-            }
 
             draw_rectangle(
                 MARGIN + SQUARE_SIZE * x as f32,
@@ -219,6 +213,18 @@ impl Board {
                 SQUARE_SIZE,
                 color,
             );
+
+            if let Some(last_move) = last_move {
+                if last_move.0 == loc!(x, y) || last_move.1 == loc!(x, y) {
+                    draw_rectangle(
+                        MARGIN + SQUARE_SIZE * x as f32,
+                        MARGIN + SQUARE_SIZE * y as f32,
+                        SQUARE_SIZE,
+                        SQUARE_SIZE,
+                        COLOR_LAST_MOVE,
+                    );
+                }
+            }
         }
 
         for (y, row) in self.raw.iter().enumerate() {
@@ -390,10 +396,12 @@ impl Board {
         moves
     }
 
+    /// Returns the number of full moves
     pub fn full_moves(&self) -> u32 {
         self.half_moves / 2
     }
 
+    /// Checks if the game is over
     pub fn is_over(&self) -> bool {
         matches!(
             self.state,
@@ -401,15 +409,7 @@ impl Board {
         )
     }
 
-    pub fn as_simple(&self) -> SimpleBoard {
-        SimpleBoard {
-            raw: self.raw,
-            castle_black: self.castle_black,
-            castle_white: self.castle_white,
-            en_passent: self.en_passent,
-        }
-    }
-
+    /// Returns a hash of the board, with castling and en passent included
     pub fn get_hash(&self) -> u64 {
         let mut hasher = FxHasher::default();
         self.raw.hash(&mut hasher);
