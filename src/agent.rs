@@ -69,7 +69,14 @@ fn minimax(
         let mut test_board = board.clone();
         test_board.move_piece(from, to, false);
 
-        let (score, _) = minimax(&test_board, !maximizing, depth - 1, alpha, beta, trans_table);
+        let (score, _) = minimax(
+            &test_board,
+            !maximizing,
+            depth - 1,
+            alpha,
+            beta,
+            trans_table,
+        );
 
         if score == i32::MAX {
             return (score, Some((*from, *to)));
