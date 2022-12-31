@@ -175,7 +175,7 @@ impl Board {
 
         // 3fold repetition (relies on hash)
         if self.prev_states.len() == 12 {
-            self.prev_states.rotate_right(0);
+            self.prev_states.rotate_right(1);
             self.prev_states[0] = self.hash;
         } else {
             self.prev_states.push(self.hash);
@@ -253,8 +253,8 @@ impl Board {
 
         // 3fold repetition
         let mut sum = 0;
-        for simple in self.prev_states.iter() {
-            if simple == &self.hash {
+        for hash in self.prev_states.iter() {
+            if hash == &self.hash {
                 sum += 1;
                 if sum >= 3 {
                     self.state = BoardState::Draw;
