@@ -113,7 +113,7 @@ pub struct Board {
     pub half_moves: u32,
 
     /// Previous board states, used for 3fold check
-    #[new(value = "Vec::with_capacity(12)")]
+    #[new(value = "Vec::with_capacity(24)")]
     pub prev_states: Vec<u64>,
 
     /// Updates on piece capture or pawn move
@@ -174,7 +174,7 @@ impl Board {
         self.hash = self.get_hash();
 
         // 3fold repetition (relies on hash)
-        if self.prev_states.len() == 12 {
+        if self.prev_states.len() == self.prev_states.capacity() {
             self.prev_states.rotate_right(1);
             self.prev_states[0] = self.hash;
         } else {
@@ -407,6 +407,9 @@ impl Board {
 
                     // Fifty move rule
                     self.fifty_rule = self.half_moves;
+
+                    // When a pawn moves, the same board state can't happen again, so we clear the prev_states
+                    self.prev_states.clear();
                 }
                 _ => {}
             }
