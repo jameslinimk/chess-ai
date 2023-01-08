@@ -52,7 +52,6 @@ fn create_openings() {
     for opening in openings.iter() {
         let mut board = Board::from_fen(TEST_FEN);
 
-        #[allow(clippy::never_loop)]
         for (i, raw_ms) in opening.moves.iter().enumerate() {
             let turn = ternary!(i % 2 == 0, ChessColor::White, ChessColor::Black);
 

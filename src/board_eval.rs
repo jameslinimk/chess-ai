@@ -262,8 +262,7 @@ impl Board {
             full_piece_value(&piece, self.endgame) - full_piece_value(&temp_piece, self.endgame);
 
         // Add value based on capture
-        let (capture, capture_pos) = self.is_capture(from, to);
-        if capture {
+        if let Some(capture_pos) = self.is_capture(from, to) {
             score += piece.get_value() - self.get(&capture_pos).unwrap().get_value();
         }
 

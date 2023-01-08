@@ -3,7 +3,7 @@ use rustc_hash::FxHashSet;
 
 use crate::pieces::piece::{Piece, PieceNames};
 use crate::util::Loc;
-use crate::{color_ternary, hashset, loc};
+use crate::{color_ternary, hashset, loc, ternary};
 
 /// Black or white, the colors of chess
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -19,13 +19,6 @@ impl ChessColor {
             ChessColor::White => ChessColor::Black,
         }
     }
-
-    pub fn display(&self) -> &'static str {
-        match self {
-            ChessColor::Black => "black",
-            ChessColor::White => "white",
-        }
-    }
 }
 
 /// Board state IE (check, checkmate, etc)
@@ -38,6 +31,21 @@ pub enum BoardState {
     Checkmate(ChessColor),
     Stalemate,
     Draw,
+}
+impl BoardState {
+    /// Returns the endgame message for the board state, panics if the game is not over
+    pub fn message(&self, player_color: ChessColor) -> &'static str {
+        match self {
+            BoardState::Checkmate(color) => ternary!(
+                &player_color != color,
+                "Congrats! You won!\nPress \"r\" to restart!",
+                "Dang, you lost\nPress \"r\" to restart!"
+            ),
+            BoardState::Stalemate => "Game over, stalemate\nPress \"r\" to restart!",
+            BoardState::Draw => "Game over, draw\nPress \"r\" to restart!",
+            _ => unreachable!(),
+        }
+    }
 }
 
 /// Represents a chess board and metadata
@@ -134,10 +142,11 @@ impl Board {
             return false;
         }
 
-        let (capture, capture_pos) = self.is_capture(from, to);
+        let capture_info = self.is_capture(from, to);
+        let capture = capture_info.is_some();
 
         // Special case where a castle rook is captured
-        if capture {
+        if let Some(capture_pos) = capture_info {
             let piece = self.get(&capture_pos).unwrap();
             if piece.name == PieceNames::Rook {
                 match piece.color {
@@ -331,22 +340,22 @@ impl Board {
         self.set(from, None);
     }
 
-    pub fn is_capture(&self, from: &Loc, to: &Loc) -> (bool, Loc) {
+    pub fn is_capture(&self, from: &Loc, to: &Loc) -> Option<Loc> {
         if self.get(to).is_some() {
-            return (true, *to);
+            return Some(*to);
         }
 
         if let Some(piece) = self.get(from) {
             if piece.name == PieceNames::Pawn && from.0.abs_diff(to.0) == 1 {
                 if let Some((loc, color)) = self.en_passent {
                     if to.0 == loc.0 && to.1.abs_diff(loc.1) == 1 && piece.color != color {
-                        return (true, loc);
+                        return Some(loc);
                     }
                 }
             };
         };
 
-        (false, loc!(0, 0))
+        None
     }
 
     /// Special actions that happen when moving a piece

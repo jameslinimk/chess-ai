@@ -190,7 +190,6 @@ impl Board {
     }
 
     /// Draws the board to the screen
-    #[allow(unused)]
     pub fn draw(
         &self,
         highlight_moves: &[Loc],

@@ -14,7 +14,7 @@ use rustc_hash::FxHashSet;
 
 use crate::agent::{Agent, AGENTS};
 use crate::assets::get_audio;
-use crate::board::{Board, BoardState};
+use crate::board::Board;
 use crate::conf::{
     CENTER_HEIGHT, CENTER_WIDTH, COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN,
     SQUARE_SIZE, TEST_FEN,
@@ -82,8 +82,8 @@ pub struct Game {
     #[new(value = "hashset!{}")]
     pub highlights: FxHashSet<Loc>,
 
-    #[new(value = "unbounded()")]
     #[allow(clippy::type_complexity)]
+    #[new(value = "unbounded()")]
     pub agent_channel: (Sender<Option<(Loc, Loc)>>, Receiver<Option<(Loc, Loc)>>),
 }
 impl Game {
@@ -193,16 +193,7 @@ impl Game {
     }
 
     fn draw_end(&self) {
-        let message = match self.board.state {
-            BoardState::Checkmate(color) => ternary!(
-                self.board.agent_color == color,
-                "Congrats! You won!\nPress \"r\" to restart!",
-                "Dang, you lost\nPress \"r\" to restart!"
-            ),
-            BoardState::Stalemate => "Game over, stalemate\nPress \"r\" to restart!",
-            BoardState::Draw => "Game over, draw\nPress \"r\" to restart!",
-            _ => panic!(),
-        };
+        let message = self.board.state.message(self.board.player_color);
 
         let params = TextParams {
             font_size: 30,
