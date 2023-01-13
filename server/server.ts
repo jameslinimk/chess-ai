@@ -8,7 +8,6 @@ app.use("/docs", express.static(resolve("../target/doc/chess_ai")))
 app.use(express.static(resolve("../target/doc")))
 
 app.use(express.static(resolve("./static")))
-app.use("/assets", express.static(resolve("../assets")))
 app.get("/game.wasm", (_, res) => {
     res.sendFile(resolve("../target/wasm32-unknown-unknown/release/chess-ai.wasm"))
 })

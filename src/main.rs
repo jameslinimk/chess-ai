@@ -66,7 +66,7 @@ fn config() -> Conf {
         window_title: "Chess AI".to_string(),
         window_width: WIDTH,
         window_height: HEIGHT,
-        window_resizable: false,
+        window_resizable: true,
         icon: Some(Icon {
             small: image!("../assets/icon-16.png"),
             medium: image!("../assets/icon-32.png"),

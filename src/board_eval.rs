@@ -2,6 +2,8 @@
 //!
 //! Contains all the functions related to calculating the score of the board / move. Used for the minimax search
 
+use macroquad::prelude::warn;
+
 use crate::board::{Board, BoardState, ChessColor};
 use crate::color_ternary;
 use crate::pieces::piece::{Piece, PieceNames};
@@ -135,12 +137,12 @@ fn piece_table(piece: &Piece, endgame: bool) -> [[i32; 8]; 8] {
                     [-30, -40, -40, -50, -50, -40, -40, -30],
                     [-20, -30, -30, -40, -40, -30, -30, -20],
                     [-10, -20, -20, -20, -20, -20, -20, -10],
-                    [20, 20, 0, 0, 0, 0, 20, 20],
+                    [20, 20, -10, -10, -10, -10, 20, 20],
                     [20, 30, 10, 0, 0, 10, 30, 20],
                 ],
                 [
                     [20, 30, 10, 0, 0, 10, 30, 20],
-                    [20, 20, 0, 0, 0, 0, 20, 20],
+                    [20, 20, -10, -10, -10, -10, 20, 20],
                     [-10, -20, -20, -20, -20, -20, -20, -10],
                     [-20, -30, -30, -40, -40, -30, -30, -20],
                     [-30, -40, -40, -50, -50, -40, -40, -30],
@@ -197,24 +199,24 @@ pub const STALEMATE_VALUE: i32 = -100;
 
 impl Board {
     pub fn get_sorted_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
-        let mut moves = vec![];
-        for piece in self.raw.iter().flatten().flatten() {
-            if piece.color == color {
-                for m in piece.get_moves(self) {
-                    moves.push((piece.pos, m));
-                }
-            }
-        }
+        let mut moves = self.get_moves(color);
 
-        moves.sort_unstable_by(|a, b| {
-            self.move_value(&b.0, &b.1)
-                .cmp(&self.move_value(&a.0, &a.1))
-        });
+        color_ternary!(
+            color,
+            moves.sort_unstable_by(|a, b| {
+                self.move_value(&a.0, &a.1)
+                    .cmp(&self.move_value(&b.0, &b.1))
+            }),
+            moves.sort_unstable_by(|a, b| {
+                self.move_value(&b.0, &b.1)
+                    .cmp(&self.move_value(&a.0, &a.1))
+            })
+        );
 
         moves
     }
 
-    /// Calculates the score of the board, for the color specified
+    /// Calculates the score of the board, for the white
     pub fn get_score(&self) -> i32 {
         match self.state {
             BoardState::Checkmate(check_color) => {
@@ -245,6 +247,7 @@ impl Board {
         let piece = match self.get(from) {
             Some(piece) => piece,
             None => {
+                warn!("Tried to get value of move from empty square");
                 return -100;
             }
         };

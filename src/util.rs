@@ -51,6 +51,14 @@ macro_rules! loc {
     };
 }
 
+/// Shorthand for creating a `Loc` from a chess notation string
+#[macro_export]
+macro_rules! n_loc {
+    ($str: expr) => {
+        $crate::util::Loc::from_notation($str)
+    };
+}
+
 /// Create [std::collections::HashMap]'s using a readable syntax, similar to dicts in python or objects in js. Adapted from maplit to support `FxHashMap`
 #[macro_export]
 macro_rules! hashmap {
@@ -245,7 +253,7 @@ pub struct Button {
 impl Button {
     pub fn new(x: f32, y: f32, w: f32, h: f32, text: &'static str) -> Button {
         let params = TextParams {
-            font_size: 30,
+            font_size: 15,
             font_scale: 1.0,
             color: COLOR_WHITE,
             font: get_font(),

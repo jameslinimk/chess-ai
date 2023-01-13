@@ -5,9 +5,9 @@
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, PI};
 use std::hash::{Hash, Hasher};
 
-use macroquad::prelude::WHITE;
+use macroquad::prelude::{vec2, WHITE};
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_triangle};
-use macroquad::texture::draw_texture;
+use macroquad::texture::{draw_texture, draw_texture_ex, DrawTextureParams};
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::board::{Board, BoardState, ChessColor};
@@ -232,11 +232,15 @@ impl Board {
                 if let Some(piece) = square {
                     #[cfg(target_family = "wasm")]
                     {
-                        draw_texture(
+                        draw_texture_ex(
                             piece.get_image(),
                             MARGIN + SQUARE_SIZE * x as f32,
                             MARGIN + SQUARE_SIZE * y as f32,
                             WHITE,
+                            DrawTextureParams {
+                                dest_size: Some(vec2(SQUARE_SIZE, SQUARE_SIZE)),
+                                ..Default::default()
+                            },
                         )
                     }
 
@@ -258,11 +262,15 @@ impl Board {
                         }
 
                         if !tweened {
-                            draw_texture(
+                            draw_texture_ex(
                                 piece.get_image(),
                                 MARGIN + SQUARE_SIZE * x as f32,
                                 MARGIN + SQUARE_SIZE * y as f32,
                                 WHITE,
+                                DrawTextureParams {
+                                    dest_size: Some(vec2(SQUARE_SIZE, SQUARE_SIZE)),
+                                    ..Default::default()
+                                },
                             )
                         }
                     }
@@ -276,7 +284,7 @@ impl Board {
                 draw_circle(
                     MARGIN + SQUARE_SIZE * x as f32 + SQUARE_SIZE / 2.0,
                     MARGIN + SQUARE_SIZE * y as f32 + SQUARE_SIZE / 2.0,
-                    SQUARE_SIZE / 4.0,
+                    SQUARE_SIZE / 5.0,
                     COLOR_SELECTED,
                 );
             }

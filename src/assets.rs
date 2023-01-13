@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use lazy_static::lazy_static;
 use macroquad::audio::{load_sound, load_sound_from_bytes, Sound};
 use macroquad::prelude::ImageFormat;
-use macroquad::texture::{load_texture, FilterMode, Texture2D};
+use macroquad::texture::{FilterMode, Texture2D};
 use rustc_hash::FxHashMap;
 
 use crate::hashmap;
@@ -23,27 +23,13 @@ pub fn get_image(path: &str) -> Texture2D {
     }
 }
 
-/// Load an image path into the asset map
-pub async fn load_image(path: &str) -> Texture2D {
-    if ASSET_MAP.lock().unwrap().contains_key(path) {
-        return get_image(path);
-    }
-    let resource = load_texture(path).await.unwrap();
-    resource.set_filter(FilterMode::Nearest);
-    ASSET_MAP
-        .lock()
-        .unwrap()
-        .insert(path.to_owned(), resource.to_owned());
-    resource
-}
-
 /// Load image bytes into the asset map
 pub async fn load_image_from_bytes(path: &str, bytes: &[u8]) -> Texture2D {
     if ASSET_MAP.lock().unwrap().contains_key(path) {
         return get_image(path);
     }
     let resource = Texture2D::from_file_with_format(bytes, Some(ImageFormat::Png));
-    resource.set_filter(FilterMode::Nearest);
+    resource.set_filter(FilterMode::Linear);
     ASSET_MAP
         .lock()
         .unwrap()

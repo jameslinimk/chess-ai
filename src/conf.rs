@@ -3,7 +3,7 @@
 use macroquad::prelude::{color_u8, Color};
 
 // Config for screen
-pub const EXTRA_WIDTH: f32 = 200.0;
+pub const EXTRA_WIDTH: f32 = 125.0;
 pub const SQUARE_SIZE: f32 = 64.0;
 pub const MARGIN: f32 = 16.0;
 pub const WIDTH: i32 = SQUARE_SIZE as i32 * 8 + MARGIN as i32 * 3 + EXTRA_WIDTH as i32;
@@ -25,4 +25,4 @@ pub const COLOR_BUTTON_PRESSED: Color = color_u8!(138, 172, 70, 255);
 
 // Config for board
 pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-pub const TEST_FEN: &str = DEFAULT_FEN;
+pub const TEST_FEN: &str = "rnb1kb1r/ppp1pppp/8/8/3qp3/8/PPPNPPPP/R1BQKB1R w KQkq - 0 6";

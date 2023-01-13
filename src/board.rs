@@ -183,7 +183,7 @@ impl Board {
         self.hash = self.get_hash();
 
         // 3fold repetition (relies on hash)
-        if self.prev_states.len() == self.prev_states.capacity() {
+        if self.prev_states.len() == 24 {
             self.prev_states.rotate_right(1);
             self.prev_states[0] = self.hash;
         } else {

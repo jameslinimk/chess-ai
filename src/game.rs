@@ -153,9 +153,6 @@ impl Game {
                 self.clear_arrows_highlights();
             }
         }
-        if is_key_pressed(KeyCode::C) {
-            self.clear_arrows_highlights();
-        }
     }
 
     fn update_buttons(&mut self) {
@@ -170,7 +167,7 @@ impl Game {
     fn draw_ui(&self) {
         multiline_text_ex(
             &format!(
-                "Agent: {:?}\nTurn: {:?}\nScore: {}\n\n{}Keybinds:\nR-Reset\nL-Last move\nC-Clear",
+                "Agent: {:?}\nTurn: {:?}\nScore: {}\n\n{}Keybinds:\nR-Reset\nL-Takeback",
                 self.agent,
                 self.board.turn,
                 self.board.score,
@@ -183,7 +180,7 @@ impl Game {
             SQUARE_SIZE * 8.0 + MARGIN * 2.0,
             MARGIN,
             TextParams {
-                font_size: 25,
+                font_size: 15,
                 font_scale: 1.0,
                 color: COLOR_WHITE,
                 font: get_font(),
