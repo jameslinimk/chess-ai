@@ -25,4 +25,4 @@ pub const COLOR_BUTTON_PRESSED: Color = color_u8!(138, 172, 70, 255);
 
 // Config for board
 pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-pub const TEST_FEN: &str = "rnb1kb1r/ppp1pppp/8/8/3qp3/8/PPPNPPPP/R1BQKB1R w KQkq - 0 6";
+pub const TEST_FEN: &str = DEFAULT_FEN;

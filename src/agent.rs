@@ -20,7 +20,7 @@ use crate::agent_opens::OPENINGS;
 use crate::board::{Board, ChessColor};
 use crate::pieces::piece::PieceNames;
 use crate::util::{choose_array, Loc};
-use crate::{color_ternary, hashmap, loc, ternary};
+use crate::{color_ternary, hashmap, ternary};
 
 pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
     let moves = board.get_moves(board.agent_color);
@@ -34,17 +34,12 @@ pub const DEPTH: u8 = 4;
 fn minimax(
     board: &Board,
     maximizing: bool,
-    mut depth: u8,
+    depth: u8,
     mut alpha: i32,
     mut beta: i32,
     trans_table: &mut FxHashMap<u64, (u8, i32, Option<(Loc, Loc)>)>,
     start: f64,
 ) -> (i32, Option<(Loc, Loc)>) {
-    // Increase depth if took too little
-    if depth == 0 && get_time() - start < 0.2 {
-        depth += 1;
-    }
-
     // Base case
     if depth == 0 || board.is_over() {
         return (board.score, None);
@@ -68,19 +63,15 @@ fn minimax(
                 };
             }
 
-            // TODO
-
             responses! {
-                // e4 -> e5
-                (PieceNames::Pawn, "e4") => [(loc!(4, 1), loc!(4, 3))],
-                // d4 -> d5
-                (PieceNames::Pawn, "d4") => [(loc!(3, 1), loc!(3, 3))],
-                // c4 -> e5
-                (PieceNames::Pawn, "c4") => [(loc!(4, 1), loc!(4, 3))],
-                // Nf3 -> e5
-                (PieceNames::Knight, "f3") => [(loc!(3, 1), loc!(3, 3))],
-                // Nc3 -> e5
-                (PieceNames::Knight, "c3") => [(loc!(3, 1), loc!(3, 3))],
+                // e4 -> e5, e6, c5
+                (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5")],
+                // d4 -> d5, c6, Nf6, Nc6
+                (PieceNames::Pawn, "d4") => [("d7", "d5"), ("g8", "f6"), ("b8", "c6")],
+                // c4 -> e5, Nf6
+                (PieceNames::Pawn, "c4") => [("e7", "e5"), ("g8", "f6")],
+                // Nf3 -> e5, Nf6
+                (PieceNames::Knight, "f3") => [("e7", "e5"), ("g8", "f6")]
             };
 
             info!("First opening found!");
