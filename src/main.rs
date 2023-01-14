@@ -19,12 +19,15 @@ use macroquad::prelude::{next_frame, Conf};
 use macroquad::text::Font;
 use macroquad::window::clear_background;
 
+use crate::camera::Camera;
+
 pub mod agent;
 pub mod agent_opens;
 pub mod assets;
 pub mod board;
 pub mod board_eval;
 pub mod board_extras;
+pub mod camera;
 pub mod conf;
 pub mod game;
 pub mod pieces;
@@ -202,9 +205,11 @@ async fn main() {
     load_images().await;
 
     let mut game = Game::new();
+    let mut camera = Camera::new();
     loop {
         clear_background(COLOR_BACKGROUND);
         game.update();
+        camera.update();
         next_frame().await;
     }
 }

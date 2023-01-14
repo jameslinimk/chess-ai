@@ -40,6 +40,12 @@ fn minimax(
     trans_table: &mut FxHashMap<u64, (u8, i32, Option<(Loc, Loc)>)>,
     start: f64,
 ) -> (i32, Option<(Loc, Loc)>) {
+    if maximizing {
+        assert_eq!(board.turn, ChessColor::White);
+    } else {
+        assert_eq!(board.turn, ChessColor::Black);
+    }
+
     // Base case
     if depth == 0 || board.is_over() {
         return (board.score, None);
@@ -71,7 +77,7 @@ fn minimax(
                 // c4 -> e5, Nf6
                 (PieceNames::Pawn, "c4") => [("e7", "e5"), ("g8", "f6")],
                 // Nf3 -> e5, Nf6
-                (PieceNames::Knight, "f3") => [("e7", "e5"), ("g8", "f6")]
+                (PieceNames::Knight, "f3") => [("e7", "e5"), ("g8", "f6")],
             };
 
             info!("First opening found!");
@@ -83,12 +89,15 @@ fn minimax(
         }
     }
 
-    if let Some((dep, score, best)) = trans_table.get(&board.hash) {
-        if dep >= &depth {
-            return (*score, *best);
+    // Check if the current board state is already stored in the transposition table
+    let stored_data = trans_table.get(&board.hash);
+    if let Some((stored_depth, stored_score, stored_best)) = stored_data {
+        if stored_depth >= &depth {
+            return (*stored_score, *stored_best);
         }
     }
 
+    // Get the sorted legal moves for the current turn
     let moves = color_ternary!(
         board.turn,
         board.get_sorted_moves(ChessColor::White),
@@ -98,6 +107,7 @@ fn minimax(
     let mut best_score = ternary!(maximizing, i32::MIN, i32::MAX);
     let mut best_move = None;
 
+    // Iterate through the moves and apply minimax
     for (from, to) in moves.iter() {
         let mut test_board = board.clone();
         test_board.move_piece(from, to, false);
@@ -116,22 +126,26 @@ fn minimax(
             return (score, Some((*from, *to)));
         }
 
+        // Update the best score and best move
         if ternary!(maximizing, score > best_score, score < best_score) {
             best_score = score;
             best_move = Some((*from, *to));
         }
 
+        // Update alpha and beta
         if maximizing {
             alpha = alpha.max(score);
         } else {
             beta = beta.min(score);
         }
 
+        // Prune the search if alpha is greater than or equal to beta
         if alpha >= beta {
             break;
         }
     }
 
+    // Store the data in the transposition table
     trans_table.insert(board.hash, (depth, best_score, best_move));
     (best_score, best_move)
 }
