@@ -5,8 +5,8 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use derive_new::new;
 use macroquad::audio::{play_sound, PlaySoundParams};
 use macroquad::prelude::{
-    info, is_key_pressed, is_mouse_button_down, is_mouse_button_pressed, mouse_position, KeyCode,
-    MouseButton, TextParams, WHITE,
+    info, is_key_pressed, is_mouse_button_down, is_mouse_button_pressed, KeyCode, MouseButton,
+    TextParams, WHITE,
 };
 use macroquad::shapes::draw_rectangle;
 use macroquad::text::measure_text;
@@ -15,6 +15,7 @@ use rustc_hash::FxHashSet;
 use crate::agent::{Agent, AGENTS};
 use crate::assets::get_audio;
 use crate::board::Board;
+use crate::camera::Camera;
 use crate::conf::{
     CENTER_HEIGHT, CENTER_WIDTH, COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN,
     SQUARE_SIZE, TEST_FEN,
@@ -85,11 +86,14 @@ pub struct Game {
     #[allow(clippy::type_complexity)]
     #[new(value = "unbounded()")]
     pub agent_channel: (Sender<Option<(Loc, Loc)>>, Receiver<Option<(Loc, Loc)>>),
+
+    #[new(value = "Camera::new()")]
+    pub camera: Camera,
 }
 impl Game {
     fn get_clicked_square(&self, button: MouseButton) -> Option<Loc> {
         if is_mouse_button_pressed(button) {
-            return pos_to_board(mouse_position());
+            return pos_to_board(self.camera.mouse_position().into());
         }
 
         None
@@ -238,11 +242,11 @@ impl Game {
 
         if is_mouse_button_down(MouseButton::Right) {
             if self.drag_start.is_none() {
-                self.drag_start = pos_to_board(mouse_position());
+                self.drag_start = pos_to_board(self.camera.mouse_position().into());
                 return;
             }
 
-            let pos = pos_to_board(mouse_position());
+            let pos = pos_to_board(self.camera.mouse_position().into());
             if self.drag_start != pos {
                 self.drag_end = pos;
             }
@@ -272,6 +276,7 @@ impl Game {
     }
 
     pub fn update(&mut self) {
+        self.camera.update();
         self.update_keys();
         self.update_buttons();
         self.update_arrows_highlights();

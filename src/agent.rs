@@ -10,10 +10,13 @@
 //! # Random
 //!
 //! - Just picks a valid move by random
+//!
+//! # Control
+//!
+//! - Manually control the agent by clicking on the board
 
 use macroquad::prelude::info;
 use macroquad::rand::ChooseRandom;
-use macroquad::time::get_time;
 use rustc_hash::FxHashMap;
 
 use crate::agent_opens::OPENINGS;
@@ -38,7 +41,6 @@ fn minimax(
     mut alpha: i32,
     mut beta: i32,
     trans_table: &mut FxHashMap<u64, (u8, i32, Option<(Loc, Loc)>)>,
-    start: f64,
 ) -> (i32, Option<(Loc, Loc)>) {
     if maximizing {
         assert_eq!(board.turn, ChessColor::White);
@@ -119,7 +121,6 @@ fn minimax(
             alpha,
             beta,
             trans_table,
-            start,
         );
 
         if score == i32::MAX {
@@ -152,15 +153,10 @@ fn minimax(
 
 /// Wrapper for minimax
 pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
-    let (_, best_move) = minimax(
-        board,
-        false,
-        DEPTH,
-        i32::MIN,
-        i32::MAX,
-        &mut hashmap! {},
-        get_time(),
-    );
+    if board.is_over() {
+        return None;
+    }
+    let (_, best_move) = minimax(board, false, DEPTH, i32::MIN, i32::MAX, &mut hashmap! {});
     best_move
 }
 
