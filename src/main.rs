@@ -37,7 +37,7 @@ fn config() -> Conf {
         window_title: "Chess AI".to_string(),
         window_width: WIDTH,
         window_height: HEIGHT,
-        window_resizable: false,
+        window_resizable: true,
         ..Default::default()
     }
 }

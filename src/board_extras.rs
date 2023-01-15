@@ -7,7 +7,9 @@ use std::hash::{Hash, Hasher};
 
 use macroquad::prelude::{vec2, WHITE};
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_triangle};
-use macroquad::texture::{draw_texture, draw_texture_ex, DrawTextureParams};
+#[cfg(not(target_family = "wasm"))]
+use macroquad::texture::draw_texture;
+use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::board::{Board, BoardState, ChessColor};
@@ -190,6 +192,7 @@ impl Board {
     }
 
     /// Draws the board to the screen
+    #[allow(unused_variables)]
     pub fn draw(
         &self,
         highlight_moves: &[Loc],
