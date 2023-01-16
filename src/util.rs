@@ -51,14 +51,6 @@ macro_rules! loc {
     };
 }
 
-/// Shorthand for creating a `Loc` from a chess notation string
-#[macro_export]
-macro_rules! n_loc {
-    ($str: expr) => {
-        $crate::util::Loc::from_notation($str)
-    };
-}
-
 /// Create [std::collections::HashMap]'s using a readable syntax, similar to dicts in python or objects in js. Adapted from maplit to support `FxHashMap`
 #[macro_export]
 macro_rules! hashmap {

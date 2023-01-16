@@ -132,6 +132,7 @@ pub struct Board {
     #[new(value = "false")]
     pub endgame: bool,
 
+    /// Hash of the board
     #[new(value = "0")]
     pub hash: u64,
 }
