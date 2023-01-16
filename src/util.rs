@@ -223,11 +223,18 @@ pub fn pos_to_board(pos: (f32, f32)) -> Option<Loc> {
     let x = (pos.0 - MARGIN) / SQUARE_SIZE;
     let y = (pos.1 - MARGIN) / SQUARE_SIZE;
 
-    if x < 0.0 || y < 0.0 || x > 8.0 || y > 8.0 {
+    if x < 0.0 || y < 0.0 {
         return None;
     }
 
-    Some(loc!(x as usize, y as usize))
+    let x = x as usize;
+    let y = y as usize;
+
+    if x >= 8 || y >= 8 {
+        return None;
+    }
+
+    Some(loc!(x, y))
 }
 
 /// Converts a board location to a position on the screen

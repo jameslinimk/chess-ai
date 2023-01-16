@@ -1,8 +1,11 @@
 use derive_new::new;
-use macroquad::prelude::{mouse_position, screen_height, screen_width, set_camera, vec2, Camera2D, Vec2};
+use macroquad::prelude::{
+    mouse_position, screen_height, screen_width, set_camera, vec2, Camera2D, Vec2,
+};
 
 use crate::conf::{HEIGHT, WIDTH};
 
+/// Struct for controlling the camera
 #[derive(Clone, Copy, new)]
 pub struct Camera {
     #[new(value = "Camera2D {
@@ -16,10 +19,12 @@ pub struct Camera {
     scale: f32,
 }
 impl Camera {
+    /// Set the current camera to the macroquad camera
     fn update_camera(&self) {
         set_camera(&self.camera);
     }
 
+    /// Updates the camera, fits its to the screen size while keeping the aspect ratio
     pub fn update(&mut self) {
         let width_height_ratio = WIDTH as f32 / HEIGHT as f32;
         if screen_width() / screen_height() > width_height_ratio {
@@ -33,6 +38,7 @@ impl Camera {
         self.update_camera();
     }
 
+    /// Gets the mouse position
     pub fn mouse_position(&self) -> Vec2 {
         self.camera.screen_to_world(mouse_position().into())
     }

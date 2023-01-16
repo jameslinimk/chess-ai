@@ -17,8 +17,8 @@ use crate::assets::get_audio;
 use crate::board::Board;
 use crate::camera::Camera;
 use crate::conf::{
-    CENTER_HEIGHT, CENTER_WIDTH, COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, HEIGHT, MARGIN,
-    SQUARE_SIZE, TEST_FEN,
+    CENTER_HEIGHT, CENTER_WIDTH, COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, FEN, HEIGHT, MARGIN,
+    SQUARE_SIZE,
 };
 use crate::pieces::piece::Piece;
 use crate::util::{multiline_text_ex, pos_to_board, Button, Loc, Tween};
@@ -26,7 +26,7 @@ use crate::{get_font, hashset, ternary};
 
 #[derive(new)]
 pub struct Game {
-    #[new(value = "Board::from_fen(TEST_FEN)")]
+    #[new(value = "Board::from_fen(FEN)")]
     pub board: Board,
 
     #[new(value = "vec![]")]

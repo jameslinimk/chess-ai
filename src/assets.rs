@@ -3,7 +3,7 @@
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-use macroquad::audio::{load_sound, load_sound_from_bytes, Sound};
+use macroquad::audio::{load_sound_from_bytes, Sound};
 use macroquad::prelude::ImageFormat;
 use macroquad::texture::{FilterMode, Texture2D};
 use rustc_hash::FxHashMap;
@@ -11,7 +11,9 @@ use rustc_hash::FxHashMap;
 use crate::hashmap;
 
 lazy_static! {
+    /// Map of images
     static ref ASSET_MAP: Mutex<FxHashMap<String, Texture2D>> = Mutex::new(hashmap! {});
+    /// Map of audio files
     static ref AUDIO_MAP: Mutex<FxHashMap<String, Sound>> = Mutex::new(hashmap! {});
 }
 
@@ -43,19 +45,6 @@ pub fn get_audio(path: &str) -> Sound {
         Some(texture) => texture.to_owned(),
         None => panic!("{}", format!("Path \"{}\" not loaded!", path)),
     }
-}
-
-/// Load an audio file into the audio map
-pub async fn load_audio(path: &str) -> Sound {
-    if AUDIO_MAP.lock().unwrap().contains_key(path) {
-        return get_audio(path);
-    }
-    let resource = load_sound(path).await.unwrap();
-    AUDIO_MAP
-        .lock()
-        .unwrap()
-        .insert(path.to_owned(), resource.to_owned());
-    resource
 }
 
 /// Load audio bytes into the audio map

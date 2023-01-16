@@ -31,7 +31,7 @@ fn create_openings() {
 
     use crate::board::{Board, ChessColor};
     use crate::board_extras::char_to_piece;
-    use crate::conf::TEST_FEN;
+    use crate::conf::FEN;
     use crate::pieces::piece::PieceNames;
     use crate::{color_ternary, hashmap, loc, ternary};
 
@@ -50,7 +50,7 @@ fn create_openings() {
     .unwrap();
 
     for opening in openings.iter() {
-        let mut board = Board::from_fen(TEST_FEN);
+        let mut board = Board::from_fen(FEN);
 
         for (i, raw_ms) in opening.moves.iter().enumerate() {
             let turn = ternary!(i % 2 == 0, ChessColor::White, ChessColor::Black);
