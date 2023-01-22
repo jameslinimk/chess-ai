@@ -31,6 +31,7 @@ pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
 }
 
 pub const DEPTH: u8 = 4;
+const MAX: i32 = i32::MAX - 1;
 
 /// Minimax agent with alpha-beta pruning and sorted move ordering
 #[allow(clippy::type_complexity)]
@@ -64,7 +65,7 @@ fn minimax(
                         if let Some(piece) = board.get(&Loc::from_notation($key.1)) {
                             if piece.name == $key.0 {
                                 let m = choose_array(&$value);
-                                return (i32::MAX, Some((Loc::from_notation(m.0), Loc::from_notation(m.1))));
+                                return (MAX, Some((Loc::from_notation(m.0), Loc::from_notation(m.1))));
                             }
                         }
                     )*
@@ -87,7 +88,7 @@ fn minimax(
 
         if let Some(moves) = OPENINGS.get(&board.hash) {
             info!("Opening found!");
-            return (i32::MAX, Some(*choose_array(moves)));
+            return (MAX, Some(*choose_array(moves)));
         }
     }
 
@@ -123,7 +124,7 @@ fn minimax(
             trans_table,
         );
 
-        if score == i32::MAX {
+        if score == MAX {
             return (score, Some((*from, *to)));
         }
 

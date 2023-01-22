@@ -19,6 +19,8 @@ use macroquad::prelude::{next_frame, Conf};
 use macroquad::text::Font;
 use macroquad::window::clear_background;
 
+use crate::camera::get_camera;
+
 pub mod agent;
 pub mod agent_opens;
 pub mod assets;
@@ -206,6 +208,7 @@ async fn main() {
     loop {
         clear_background(COLOR_BACKGROUND);
         game.update();
+        get_camera().update();
         next_frame().await;
     }
 }

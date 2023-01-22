@@ -5,12 +5,22 @@ use macroquad::prelude::{
 
 use crate::conf::{HEIGHT, WIDTH};
 
+static mut CAMERA: Option<Camera> = None;
+pub fn get_camera() -> &'static mut Camera {
+    unsafe {
+        if CAMERA.is_none() {
+            CAMERA = Some(Camera::new());
+        }
+        CAMERA.as_mut().unwrap()
+    }
+}
+
 /// Struct for controlling the camera
 #[derive(Clone, Copy, new)]
 pub struct Camera {
     #[new(value = "Camera2D {
-        zoom: vec2(2.0 / screen_width(), -2.0 / screen_height()),
-        target: vec2(screen_width() / 2.0, screen_height() / 2.0),
+        zoom: vec2(2.0 / WIDTH as f32, -2.0 / HEIGHT as f32),
+        target: vec2(WIDTH as f32 / 2.0, HEIGHT as f32 / 2.0),
         ..Default::default()
     }")]
     camera: Camera2D,
