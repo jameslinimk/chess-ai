@@ -1,15 +1,14 @@
 use std::f32::consts::PI;
 
 use derive_new::new;
-use macroquad::prelude::{
-    is_mouse_button_down, is_mouse_button_pressed, mouse_position, MouseButton,
-};
+use macroquad::prelude::{is_mouse_button_down, is_mouse_button_pressed, MouseButton};
 use macroquad::rand::gen_range;
 use macroquad::shapes::draw_rectangle;
 use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
 use macroquad::time::get_frame_time;
 use serde::{Deserialize, Serialize};
 
+use crate::camera::get_camera;
 use crate::conf::{
     COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE, MARGIN, SQUARE_SIZE,
 };
@@ -272,7 +271,10 @@ impl Button {
     }
 
     pub fn update(&mut self) -> bool {
-        self.hover = touches(mouse_position(), (self.x, self.y, self.w, self.h));
+        self.hover = touches(
+            get_camera().mouse_position().into(),
+            (self.x, self.y, self.w, self.h),
+        );
         if self.hover {
             if is_mouse_button_pressed(MouseButton::Left) {
                 self.pressed = true;
