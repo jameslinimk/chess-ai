@@ -24,7 +24,7 @@ use crate::pieces::piece::Piece;
 use crate::util::{multiline_text_ex, pos_to_board, Button, Loc, Tween};
 use crate::{get_font, hashset, ternary};
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct Game {
     #[new(value = "Board::from_fen(FEN)")]
     pub board: Board,

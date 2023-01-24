@@ -4,7 +4,7 @@ use macroquad::prelude::{color_u8, Color};
 
 // Config for screen
 pub const EXTRA_WIDTH: f32 = 125.0;
-pub const SQUARE_SIZE: f32 = 64.0;
+pub const SQUARE_SIZE: f32 = 60.0;
 pub const MARGIN: f32 = 16.0;
 pub const WIDTH: i32 = SQUARE_SIZE as i32 * 8 + MARGIN as i32 * 3 + EXTRA_WIDTH as i32;
 pub const HEIGHT: i32 = SQUARE_SIZE as i32 * 8 + MARGIN as i32 * 2;

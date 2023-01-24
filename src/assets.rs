@@ -21,7 +21,7 @@ lazy_static! {
 pub fn get_image(path: &str) -> Texture2D {
     match ASSET_MAP.lock().unwrap().get(path) {
         Some(texture) => texture.to_owned(),
-        None => panic!("{}", format!("Path \"{}\" not loaded!", path)),
+        None => panic!("{}", format!("Path \"{path}\" not loaded!")),
     }
 }
 
@@ -43,7 +43,7 @@ pub async fn load_image_from_bytes(path: &str, bytes: &[u8]) -> Texture2D {
 pub fn get_audio(path: &str) -> Sound {
     match AUDIO_MAP.lock().unwrap().get(path) {
         Some(texture) => texture.to_owned(),
-        None => panic!("{}", format!("Path \"{}\" not loaded!", path)),
+        None => panic!("{}", format!("Path \"{path}\" not loaded!")),
     }
 }
 

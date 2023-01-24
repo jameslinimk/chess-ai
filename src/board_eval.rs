@@ -42,7 +42,7 @@ lazy_static! {
             [-10, 0, 10, 10, 10, 10, 0, -10],
             [-10, 10, 10, 10, 10, 10, 10, -10],
             [-10, 5, 0, 0, 0, 0, 5, -10],
-            [-20, -10, -10, -10, -10, -10, -10, -20],
+            [-20, -10, -50, -10, -10, -50, -10, -20],
         ]),
         PieceNames::Knight => rev_arrays!([
             [-50, -40, -30, -30, -30, -30, -40, -50],
@@ -52,7 +52,7 @@ lazy_static! {
             [-30, 0, 15, 20, 20, 15, 0, -30],
             [-30, 5, 10, 15, 15, 10, 5, -30],
             [-40, -20, 0, 5, 5, 0, -20, -40],
-            [-50, -40, -30, -30, -30, -30, -40, -50],
+            [-50, -50, -30, -30, -30, -30, -50, -50],
         ]),
         PieceNames::Rook => rev_arrays!([
             [0, 0, 0, 0, 0, 0, 0, 0],
@@ -65,14 +65,14 @@ lazy_static! {
             [0, 0, 0, 5, 5, 0, 0, 0],
         ]),
         PieceNames::Queen => rev_arrays!([
-            [-20, -10, -10, -5, -5, -10, -10, -20],
+            [-20, -10, -10, 5, -5, -10, -10, -20],
             [-10, 0, 0, 0, 0, 0, 0, -10],
-            [-10, 0, 5, 5, 5, 5, 0, -10],
-            [-5, 0, 5, 5, 5, 5, 0, -5],
-            [0, 0, 5, 5, 5, 5, 0, -5],
-            [-10, 5, 5, 5, 5, 5, 0, -10],
+            [-10, 0, 0, 0, 0, 0, 0, -10],
+            [-5, 0, 0, 0, 0, 0, 0, -5],
+            [0, 0, 0, 0, 0, 0, 0, -5],
+            [-10, 0, 0, 0, 0, 5, 0, -10],
             [-10, 0, 5, 0, 0, 0, 0, -10],
-            [-20, -10, -10, -5, -5, -10, -10, -20],
+            [-20, -10, -10, 5, -5, -10, -10, -20],
         ]),
     };
 
@@ -85,8 +85,8 @@ lazy_static! {
             [-30, -40, -40, -50, -50, -40, -40, -30],
             [-20, -30, -30, -40, -40, -30, -30, -20],
             [-10, -20, -20, -20, -20, -20, -20, -10],
-            [20, 20, -10, -10, -10, -10, 20, 20],
-            [20, 30, 10, 0, 0, 10, 30, 20],
+            [20, 20, -30, -30, -30, -30, 20, 20],
+            [20, 30, 10, -30, 0, 10, 30, 20],
         ]),
         rev_arrays!([
             [-50, -40, -30, -20, -20, -30, -40, -50],
@@ -101,14 +101,19 @@ lazy_static! {
     );
 }
 
-fn table_value(piece: &Piece, endgame: bool) -> i32 {
-    let table = if piece.name == PieceNames::King {
+fn piece_table(piece: &PieceNames, color: &ChessColor, endgame: bool) -> Table {
+    let table = if piece == &PieceNames::King {
         ternary!(endgame, &KING_TABLE.1, &KING_TABLE.0)
     } else {
-        &PIECE_TABLES[&piece.name]
+        &PIECE_TABLES[piece]
     };
 
-    color_ternary!(piece.color, table.0, table.1)[piece.pos.1][piece.pos.0]
+    color_ternary!(*color, table.0, table.1)
+}
+
+fn table_value(piece: &Piece, endgame: bool) -> i32 {
+    let table = piece_table(&piece.name, &piece.color, endgame);
+    table[piece.pos.1][piece.pos.0]
 }
 
 pub fn piece_value(piece: &PieceNames) -> i32 {
@@ -172,6 +177,10 @@ impl Board {
             color_ternary!(piece.color, score += value, score -= value);
         }
 
+        // Add value based on attacks
+        score += self.attacks_white.len() as i32;
+        score -= self.attacks_black.len() as i32;
+
         score
     }
 
@@ -184,17 +193,27 @@ impl Board {
             }
         };
 
-        // Pawn promotion
-        if piece.name == PieceNames::Pawn && (piece.pos.1 == 7 || piece.pos.1 == 0) {
-            return i32::MAX;
-        }
-
         let mut score = 0;
 
+        match piece.name {
+            // Promoting pawn
+            PieceNames::Pawn if piece.pos.1 == 7 || piece.pos.1 == 0 => {
+                return i32::MAX;
+            }
+            // Moving king with no castle during the non-endgame
+            PieceNames::King if self.endgame && from.0.abs_diff(to.0) != 2 => {
+                score -= 20;
+            }
+            // Moving king without developed minors
+            PieceNames::Queen if self.agent_developments != ((true, true), (true, true)) => {
+                score -= 25;
+            }
+            _ => {}
+        }
+
         // Position change
-        let temp_piece = Piece { pos: *to, ..piece };
-        score +=
-            full_piece_value(&piece, self.endgame) - full_piece_value(&temp_piece, self.endgame);
+        let table = piece_table(&piece.name, &piece.color, self.endgame);
+        score += table[to.1][to.0] - table[from.1][from.0];
 
         // Add value based on capture
         if let Some(capture_pos) = self.is_capture(from, to) {

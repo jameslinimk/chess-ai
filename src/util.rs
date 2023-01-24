@@ -1,11 +1,13 @@
 use std::f32::consts::PI;
 
 use derive_new::new;
-use macroquad::prelude::{is_mouse_button_down, is_mouse_button_pressed, MouseButton};
+use macroquad::prelude::{is_mouse_button_down, is_mouse_button_pressed, ImageFormat, MouseButton};
 use macroquad::rand::gen_range;
 use macroquad::shapes::draw_rectangle;
 use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
+use macroquad::texture::Texture2D;
 use macroquad::time::get_frame_time;
+use resvg::usvg_text_layout::{fontdb, TreeTextToPath};
 use serde::{Deserialize, Serialize};
 
 use crate::camera::get_camera;
@@ -136,7 +138,7 @@ impl Loc {
             7 => '1',
             _ => panic!(),
         };
-        format!("{}{}", x, y)
+        format!("{x}{y}")
     }
 
     /// Creates a `Loc` from a chess notation string IE (`"A8"` becomes `(0, 0)`)
@@ -237,6 +239,7 @@ pub fn board_to_pos_center(loc: &Loc) -> (f32, f32) {
 }
 
 /// Creates a button that can be clicked
+#[derive(Clone, Copy)]
 pub struct Button {
     x: f32,
     y: f32,
@@ -331,7 +334,7 @@ pub fn distance(p1: (f32, f32), p2: (f32, f32)) -> f32 {
     ((p1.0 - p2.0).powf(2.0) + (p1.1 - p2.1).powf(2.0)).sqrt()
 }
 
-#[derive(new)]
+#[derive(Clone, Copy, new)]
 /// A tween that moves from one point to another linearly
 pub struct Tween {
     start: (f32, f32),
@@ -350,4 +353,31 @@ impl Tween {
 
         self.start
     }
+}
+
+/// Turn svg into png bytes
+pub fn svg_to_png(svg_str: &str) -> Vec<u8> {
+    let opt = resvg::usvg::Options::default();
+    let mut tree = resvg::usvg::Tree::from_str(svg_str, &opt).unwrap();
+    let mut fontdb = fontdb::Database::new();
+    fontdb.load_system_fonts();
+    tree.convert_text(&fontdb, opt.keep_named_groups);
+    let pixmap_size = tree.size.to_screen_size();
+    let mut pixmap =
+        resvg::tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height()).unwrap();
+
+    resvg::render(
+        &tree,
+        resvg::usvg::FitTo::Original,
+        resvg::tiny_skia::Transform::default(),
+        pixmap.as_mut(),
+    )
+    .unwrap();
+    pixmap.encode_png().unwrap()
+}
+
+/// Turns svg into [Texture2D]
+pub fn svg_to_texture(svg_str: &str) -> Texture2D {
+    let png_data = svg_to_png(svg_str);
+    Texture2D::from_file_with_format(&png_data, Some(ImageFormat::Png))
 }

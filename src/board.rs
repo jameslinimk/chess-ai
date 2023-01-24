@@ -135,6 +135,11 @@ pub struct Board {
     /// Hash of the board
     #[new(value = "0")]
     pub hash: u64,
+
+    /// `((queen knight, king knight), (queen bishop, king bishop)))`
+    /// - `true` if moved before, `false` if not
+    #[new(value = "((false, false), (false, false))")]
+    pub agent_developments: ((bool, bool), (bool, bool)),
 }
 impl Board {
     /// Moves the piece in `from` to `to`
@@ -392,7 +397,6 @@ impl Board {
                     loc!(7, 7) => self.castle_white.1 = false,
                     _ => (),
                 },
-
                 // En passent check
                 PieceNames::Pawn => {
                     // Promotion
@@ -420,6 +424,24 @@ impl Board {
 
                     // When a pawn moves, the same board state can't happen again, so we clear the prev_states
                     self.prev_states.clear();
+                }
+                PieceNames::Knight => {
+                    let (kingside, queenside) = &mut self.agent_developments.0;
+                    let y = color_ternary!(piece.color, 7, 0);
+                    if from == &loc!(1, y) {
+                        *queenside = true;
+                    } else if from == &loc!(6, y) {
+                        *kingside = true;
+                    }
+                }
+                PieceNames::Bishop => {
+                    let (kingside, queenside) = &mut self.agent_developments.1;
+                    let y = color_ternary!(piece.color, 7, 0);
+                    if from == &loc!(2, y) {
+                        *queenside = true;
+                    } else if from == &loc!(5, y) {
+                        *kingside = true;
+                    }
                 }
                 _ => {}
             }
