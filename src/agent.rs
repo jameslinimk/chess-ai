@@ -74,8 +74,8 @@ fn minimax(
             }
 
             responses! {
-                // e4 -> e5, e6, c5, d5
-                (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5"), ("d7", "d5")],
+                // e4 -> e5, e6, c5
+                (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5")],
                 // d4 -> d5, c6, Nf6, Nc6
                 (PieceNames::Pawn, "d4") => [("d7", "d5"), ("g8", "f6"), ("b8", "c6")],
                 // c4 -> e5, Nf6

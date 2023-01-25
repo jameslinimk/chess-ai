@@ -236,7 +236,7 @@ impl Board {
                     #[cfg(target_family = "wasm")]
                     {
                         draw_texture_ex(
-                            piece.get_image(),
+                            piece.image(),
                             MARGIN + SQUARE_SIZE * x as f32,
                             MARGIN + SQUARE_SIZE * y as f32,
                             WHITE,
