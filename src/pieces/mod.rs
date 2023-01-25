@@ -3,11 +3,11 @@
 //! - Get all legal moves
 //! - Get squares piece can attack
 
-pub mod bishop;
-pub mod king;
-pub mod knight;
-pub mod pawn;
-pub mod piece;
-pub mod queen;
-pub mod rook;
-pub mod util;
+pub(crate) mod bishop;
+pub(crate) mod king;
+pub(crate) mod knight;
+pub(crate) mod pawn;
+pub(crate) mod piece;
+pub(crate) mod queen;
+pub(crate) mod rook;
+pub(crate) mod util;

@@ -7,23 +7,14 @@ use crate::{color_ternary, hashset, loc, ternary};
 
 /// Black or white, the colors of chess
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum ChessColor {
+pub(crate) enum ChessColor {
     Black,
     White,
-}
-impl ChessColor {
-    /// Returns the opposite color
-    pub fn other(&self) -> ChessColor {
-        match self {
-            ChessColor::Black => ChessColor::White,
-            ChessColor::White => ChessColor::Black,
-        }
-    }
 }
 
 /// Board state IE (check, checkmate, etc)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum BoardState {
+pub(crate) enum BoardState {
     Normal,
     /// Attached color is who is in check
     Check(ChessColor),
@@ -34,7 +25,7 @@ pub enum BoardState {
 }
 impl BoardState {
     /// Returns the endgame message for the board state, panics if the game is not over
-    pub fn message(&self, player_color: ChessColor) -> &'static str {
+    pub(crate) fn message(&self, player_color: ChessColor) -> &'static str {
         match self {
             BoardState::Checkmate(color) => ternary!(
                 &player_color != color,
@@ -50,100 +41,100 @@ impl BoardState {
 
 /// Represents a chess board and metadata
 #[derive(Debug, Clone, PartialEq, Eq, new)]
-pub struct Board {
+pub(crate) struct Board {
     /// Array with the raw 8x8 board data
     #[new(value = "[[None; 8]; 8]")]
-    pub raw: [[Option<Piece>; 8]; 8],
+    pub(crate) raw: [[Option<Piece>; 8]; 8],
 
     /// Turn of the board
     #[new(value = "ChessColor::White")]
-    pub turn: ChessColor,
+    pub(crate) turn: ChessColor,
 
     /// State of the board IE (check, checkmate, etc)
     #[new(value = "BoardState::Normal")]
-    pub state: BoardState,
+    pub(crate) state: BoardState,
 
     /// Player color
     #[new(value = "ChessColor::White")]
-    pub player_color: ChessColor,
+    pub(crate) player_color: ChessColor,
 
     /// Agent color
     #[new(value = "ChessColor::Black")]
-    pub agent_color: ChessColor,
+    pub(crate) agent_color: ChessColor,
 
     /// True if black can castle (queen side, king side)
     #[new(value = "(true, true)")]
-    pub castle_black: (bool, bool),
+    pub(crate) castle_black: (bool, bool),
 
     /// True if white can castle (queen side, king side)
     #[new(value = "(true, true)")]
-    pub castle_white: (bool, bool),
+    pub(crate) castle_white: (bool, bool),
 
     /// Last pawn move and color
     #[new(value = "None")]
-    pub en_passent: Option<(Loc, ChessColor)>,
+    pub(crate) en_passent: Option<(Loc, ChessColor)>,
 
     /// Current score of board, for white
     #[new(value = "0")]
-    pub score: i32,
+    pub(crate) score: i32,
 
     /// Which squares are under attack by white pieces
     #[new(value = "hashset! {}")]
-    pub attacks_white: FxHashSet<Loc>,
+    pub(crate) attacks_white: FxHashSet<Loc>,
 
     /// Which squares are under attack by black pieces
     #[new(value = "hashset! {}")]
-    pub attacks_black: FxHashSet<Loc>,
+    pub(crate) attacks_black: FxHashSet<Loc>,
 
     /// Wether the white king is in check
     #[new(value = "false")]
-    pub check_white: bool,
+    pub(crate) check_white: bool,
 
     /// Wether the black king is in check
     #[new(value = "false")]
-    pub check_black: bool,
+    pub(crate) check_black: bool,
 
     /// Pieces that block any attackers
     #[new(value = "hashset! {}")]
-    pub blockers: FxHashSet<Loc>,
+    pub(crate) blockers: FxHashSet<Loc>,
 
     /// Available moves for white
     #[new(value = "vec![]")]
-    pub moves_white: Vec<(Loc, Loc)>,
+    pub(crate) moves_white: Vec<(Loc, Loc)>,
 
     /// Available moves for black
     #[new(value = "vec![]")]
-    pub moves_black: Vec<(Loc, Loc)>,
+    pub(crate) moves_black: Vec<(Loc, Loc)>,
 
     /// Number of half moves (+1 per white *or* black turn)
     /// - Use `Board.full_moves()` for full moves
     #[new(value = "0")]
-    pub half_moves: u32,
+    pub(crate) half_moves: u32,
 
     /// Previous board states, used for 3fold check
     #[new(value = "Vec::with_capacity(24)")]
-    pub prev_states: Vec<u64>,
+    pub(crate) prev_states: Vec<u64>,
 
     /// Updates on piece capture or pawn move
     #[new(value = "0")]
-    pub fifty_rule: u32,
+    pub(crate) fifty_rule: u32,
 
     /// Wether the game is endgame or not
     #[new(value = "false")]
-    pub endgame: bool,
+    pub(crate) endgame: bool,
 
     /// Hash of the board
     #[new(value = "0")]
-    pub hash: u64,
+    pub(crate) hash: u64,
 
     /// `((queen knight, king knight), (queen bishop, king bishop)))`
     /// - `true` if moved before, `false` if not
     #[new(value = "((false, false), (false, false))")]
-    pub agent_developments: ((bool, bool), (bool, bool)),
+    pub(crate) agent_developments: ((bool, bool), (bool, bool)),
 }
 impl Board {
     /// Moves the piece in `from` to `to`
-    pub fn move_piece(&mut self, from: &Loc, to: &Loc, check_stale: bool) -> bool {
+    pub(crate) fn move_piece(&mut self, from: &Loc, to: &Loc, check_stale: bool) -> bool {
         if self.get(from).is_none() {
             return false;
         }
@@ -186,7 +177,7 @@ impl Board {
         self.half_moves += 1;
 
         // Set hash (relies on nothing)
-        self.hash = self.get_hash();
+        self.hash = self.hash();
 
         // 3fold repetition (relies on hash)
         if self.prev_states.len() == 24 {
@@ -208,7 +199,7 @@ impl Board {
     }
 
     /// Updates "things", such as the game state, checks, attacks, etc. Auto called by `move_piece`
-    pub fn update_things(&mut self, check_stale: bool) {
+    pub(crate) fn update_things(&mut self, check_stale: bool) {
         // Update attacks (relies on nothing)
         self.attacks_white = self.get_attacks(ChessColor::White);
         self.attacks_black = self.get_attacks(ChessColor::Black);
@@ -346,7 +337,7 @@ impl Board {
         self.set(from, None);
     }
 
-    pub fn is_capture(&self, from: &Loc, to: &Loc) -> Option<Loc> {
+    pub(crate) fn is_capture(&self, from: &Loc, to: &Loc) -> Option<Loc> {
         if self.get(to).is_some() {
             return Some(*to);
         }

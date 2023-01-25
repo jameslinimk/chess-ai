@@ -6,7 +6,7 @@ use macroquad::prelude::{
 use crate::conf::{HEIGHT, WIDTH};
 
 static mut CAMERA: Option<Camera> = None;
-pub fn get_camera() -> &'static mut Camera {
+pub(crate) fn get_camera() -> &'static mut Camera {
     unsafe {
         if CAMERA.is_none() {
             CAMERA = Some(Camera::new());
@@ -17,7 +17,7 @@ pub fn get_camera() -> &'static mut Camera {
 
 /// Struct for controlling the camera
 #[derive(Clone, Copy, new)]
-pub struct Camera {
+pub(crate) struct Camera {
     #[new(value = "Camera2D {
         zoom: vec2(2.0 / WIDTH as f32, -2.0 / HEIGHT as f32),
         target: vec2(WIDTH as f32 / 2.0, HEIGHT as f32 / 2.0),
@@ -35,7 +35,7 @@ impl Camera {
     }
 
     /// Updates the camera, fits its to the screen size while keeping the aspect ratio
-    pub fn update(&mut self) {
+    pub(crate) fn update(&mut self) {
         let width_height_ratio = WIDTH as f32 / HEIGHT as f32;
         if screen_width() / screen_height() > width_height_ratio {
             self.scale = screen_height() / HEIGHT as f32;
@@ -49,7 +49,7 @@ impl Camera {
     }
 
     /// Gets the mouse position
-    pub fn mouse_position(&self) -> Vec2 {
+    pub(crate) fn mouse_position(&self) -> Vec2 {
         self.camera.screen_to_world(mouse_position().into())
     }
 }

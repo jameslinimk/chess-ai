@@ -1,13 +1,12 @@
 use std::f32::consts::PI;
 
 use derive_new::new;
-use macroquad::prelude::{is_mouse_button_down, is_mouse_button_pressed, ImageFormat, MouseButton};
+use macroquad::prelude::{is_mouse_button_down, is_mouse_button_pressed, MouseButton};
 use macroquad::rand::gen_range;
 use macroquad::shapes::draw_rectangle;
 use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
-use macroquad::texture::Texture2D;
+#[cfg(not(target_family = "wasm"))]
 use macroquad::time::get_frame_time;
-use resvg::usvg_text_layout::{fontdb, TreeTextToPath};
 use serde::{Deserialize, Serialize};
 
 use crate::camera::get_camera;
@@ -17,7 +16,7 @@ use crate::conf::{
 use crate::get_font;
 
 /// Makes sure the board part of fen is valid, doesn't check if there are 5 kings, 500 pawns, etc
-pub fn validate_fen(fen: &str) -> bool {
+pub(crate) fn validate_fen(fen: &str) -> bool {
     let rows = fen.split('/');
     let mut rows_len = 0;
 
@@ -92,10 +91,10 @@ macro_rules! hashset {
 
 /// A Vec2 with usize values and utility functions for chess board stuff
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Loc(pub usize, pub usize);
+pub(crate) struct Loc(pub(crate) usize, pub(crate) usize);
 impl Loc {
     /// Create a new `Loc`, shifted `x_diff` and `y_diff` away from the current pos
-    pub fn copy_move_i32(&self, x_diff: i32, y_diff: i32) -> (Loc, bool) {
+    pub(crate) fn copy_move_i32(&self, x_diff: i32, y_diff: i32) -> (Loc, bool) {
         let mut new_x = self.0 as i32 + x_diff;
         let mut new_y = self.1 as i32 + y_diff;
 
@@ -109,7 +108,7 @@ impl Loc {
     }
 
     /// Move the current pos by `x_diff` and `y_diff`
-    pub fn move_i32(&mut self, x_diff: i32, y_diff: i32) -> bool {
+    pub(crate) fn move_i32(&mut self, x_diff: i32, y_diff: i32) -> bool {
         let new_x = self.0 as i32 + x_diff;
         let new_y = self.1 as i32 + y_diff;
 
@@ -125,7 +124,7 @@ impl Loc {
     }
 
     /// Get the location as chess notation IE (`(0, 0)` becomes `"A8"`)
-    pub fn as_notation(&self) -> String {
+    pub(crate) fn as_notation(&self) -> String {
         let x = char::from_u32(self.0 as u32 + 97).unwrap();
         let y = match self.1 {
             0 => '8',
@@ -142,7 +141,7 @@ impl Loc {
     }
 
     /// Creates a `Loc` from a chess notation string IE (`"A8"` becomes `(0, 0)`)
-    pub fn from_notation(notation: &str) -> Loc {
+    pub(crate) fn from_notation(notation: &str) -> Loc {
         let mut chars = notation.chars();
         let x = chars.next().unwrap() as u32 - 97;
         let y = match chars.next().unwrap() {
@@ -160,13 +159,13 @@ impl Loc {
     }
 
     /// Convert the `Loc` to a `(f32, f32)`
-    pub fn as_f32(&self) -> (f32, f32) {
+    pub(crate) fn as_f32(&self) -> (f32, f32) {
         (self.0 as f32, self.1 as f32)
     }
 }
 
 /// Sees if a rectangle contains a point
-pub fn touches(point: (f32, f32), rect: (f32, f32, f32, f32)) -> bool {
+pub(crate) fn touches(point: (f32, f32), rect: (f32, f32, f32, f32)) -> bool {
     point.0 >= rect.0
         && point.0 <= rect.0 + rect.2
         && point.1 >= rect.1
@@ -174,7 +173,7 @@ pub fn touches(point: (f32, f32), rect: (f32, f32, f32, f32)) -> bool {
 }
 
 /// Write multiple lines of text that are automatically spaced
-pub fn multiline_text_ex(text: &str, x: f32, y: f32, params: TextParams) {
+pub(crate) fn multiline_text_ex(text: &str, x: f32, y: f32, params: TextParams) {
     let height = measure_text(text, Some(params.font), params.font_size, params.font_scale).height;
     for (i, line) in text.lines().enumerate() {
         draw_text_ex(line, x, y + height * (i as f32 + 1.0), params);
@@ -182,7 +181,7 @@ pub fn multiline_text_ex(text: &str, x: f32, y: f32, params: TextParams) {
 }
 
 /// Get a random element from an array
-pub fn choose_array<T>(arr: &[T]) -> &T {
+pub(crate) fn choose_array<T>(arr: &[T]) -> &T {
     let index = gen_range(0, arr.len());
     &arr[index]
 }
@@ -212,7 +211,7 @@ macro_rules! ternary {
 }
 
 /// Convert a position on the screen to a board location
-pub fn pos_to_board(pos: (f32, f32)) -> Option<Loc> {
+pub(crate) fn pos_to_board(pos: (f32, f32)) -> Option<Loc> {
     let x = (pos.0 - MARGIN) / SQUARE_SIZE;
     let y = (pos.1 - MARGIN) / SQUARE_SIZE;
 
@@ -231,7 +230,7 @@ pub fn pos_to_board(pos: (f32, f32)) -> Option<Loc> {
 }
 
 /// Converts a board location to a position on the screen
-pub fn board_to_pos_center(loc: &Loc) -> (f32, f32) {
+pub(crate) fn board_to_pos_center(loc: &Loc) -> (f32, f32) {
     (
         loc.0 as f32 * SQUARE_SIZE + MARGIN + SQUARE_SIZE / 2.0,
         loc.1 as f32 * SQUARE_SIZE + MARGIN + SQUARE_SIZE / 2.0,
@@ -240,7 +239,7 @@ pub fn board_to_pos_center(loc: &Loc) -> (f32, f32) {
 
 /// Creates a button that can be clicked
 #[derive(Clone, Copy)]
-pub struct Button {
+pub(crate) struct Button {
     x: f32,
     y: f32,
     w: f32,
@@ -252,7 +251,7 @@ pub struct Button {
     params: TextParams,
 }
 impl Button {
-    pub fn new(x: f32, y: f32, w: f32, h: f32, text: &'static str) -> Button {
+    pub(crate) fn new(x: f32, y: f32, w: f32, h: f32, text: &'static str) -> Button {
         let params = TextParams {
             font_size: 15,
             font_scale: 1.0,
@@ -273,7 +272,7 @@ impl Button {
         }
     }
 
-    pub fn update(&mut self) -> bool {
+    pub(crate) fn update(&mut self) -> bool {
         self.hover = touches(
             get_camera().mouse_position().into(),
             (self.x, self.y, self.w, self.h),
@@ -294,7 +293,7 @@ impl Button {
         false
     }
 
-    pub fn draw(&self) {
+    pub(crate) fn draw(&self) {
         let color = match (self.hover, self.pressed) {
             (true, true) => COLOR_BUTTON_PRESSED,
             (true, false) => COLOR_BUTTON_HOVER,
@@ -314,7 +313,7 @@ impl Button {
 }
 
 // Gets the angle between two points
-pub fn angle(origin: (f32, f32), dest: (f32, f32)) -> f32 {
+pub(crate) fn angle(origin: (f32, f32), dest: (f32, f32)) -> f32 {
     let x_dist = dest.0 - origin.0;
     let y_dist = dest.1 - origin.1;
 
@@ -322,7 +321,7 @@ pub fn angle(origin: (f32, f32), dest: (f32, f32)) -> f32 {
 }
 
 /// Returns a new point that is the distance away from the original point in the direction of the angle
-pub fn project(origin: (f32, f32), angle: f32, distance: f32) -> (f32, f32) {
+pub(crate) fn project(origin: (f32, f32), angle: f32, distance: f32) -> (f32, f32) {
     (
         origin.0 + (angle.cos() * distance),
         origin.1 - (angle.sin() * distance),
@@ -330,21 +329,23 @@ pub fn project(origin: (f32, f32), angle: f32, distance: f32) -> (f32, f32) {
 }
 
 /// Gets the distance between two points
-pub fn distance(p1: (f32, f32), p2: (f32, f32)) -> f32 {
+pub(crate) fn distance(p1: (f32, f32), p2: (f32, f32)) -> f32 {
     ((p1.0 - p2.0).powf(2.0) + (p1.1 - p2.1).powf(2.0)).sqrt()
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy, new)]
 /// A tween that moves from one point to another linearly
-pub struct Tween {
+pub(crate) struct Tween {
     start: (f32, f32),
     end: (f32, f32),
     #[new(value = "angle(start, end)")]
     angle: f32,
     speed: f32,
 }
+#[cfg(not(target_family = "wasm"))]
 impl Tween {
-    pub fn update(&mut self) -> (f32, f32) {
+    pub(crate) fn update(&mut self) -> (f32, f32) {
         self.start = project(self.start, self.angle, self.speed * get_frame_time());
         if distance(self.start, self.end) <= self.speed * get_frame_time() {
             self.start = self.end;
@@ -353,31 +354,4 @@ impl Tween {
 
         self.start
     }
-}
-
-/// Turn svg into png bytes
-pub fn svg_to_png(svg_str: &str) -> Vec<u8> {
-    let opt = resvg::usvg::Options::default();
-    let mut tree = resvg::usvg::Tree::from_str(svg_str, &opt).unwrap();
-    let mut fontdb = fontdb::Database::new();
-    fontdb.load_system_fonts();
-    tree.convert_text(&fontdb, opt.keep_named_groups);
-    let pixmap_size = tree.size.to_screen_size();
-    let mut pixmap =
-        resvg::tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height()).unwrap();
-
-    resvg::render(
-        &tree,
-        resvg::usvg::FitTo::Original,
-        resvg::tiny_skia::Transform::default(),
-        pixmap.as_mut(),
-    )
-    .unwrap();
-    pixmap.encode_png().unwrap()
-}
-
-/// Turns svg into [Texture2D]
-pub fn svg_to_texture(svg_str: &str) -> Texture2D {
-    let png_data = svg_to_png(svg_str);
-    Texture2D::from_file_with_format(&png_data, Some(ImageFormat::Png))
 }

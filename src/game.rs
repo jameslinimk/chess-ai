@@ -25,21 +25,21 @@ use crate::util::{multiline_text_ex, pos_to_board, Button, Loc, Tween};
 use crate::{get_font, hashset, ternary};
 
 #[derive(Clone, new)]
-pub struct Game {
+pub(crate) struct Game {
     #[new(value = "Board::from_fen(FEN)")]
-    pub board: Board,
+    pub(crate) board: Board,
 
     #[new(value = "vec![]")]
-    pub board_history: Vec<(Board, Option<(Loc, Loc)>)>,
+    pub(crate) board_history: Vec<(Board, Option<(Loc, Loc)>)>,
 
     #[new(value = "None")]
-    pub selected: Option<Piece>,
+    pub(crate) selected: Option<Piece>,
 
     #[new(value = "vec![]")]
-    pub highlight_moves: Vec<Loc>,
+    pub(crate) highlight_moves: Vec<Loc>,
 
     #[new(value = "Agent::Minimax")]
-    pub agent: Agent,
+    pub(crate) agent: Agent,
 
     #[new(value = "{
         let mut temp = vec![];
@@ -59,33 +59,33 @@ pub struct Game {
 
         temp
     }")]
-    pub agent_buttons: Vec<(Button, Agent)>,
+    pub(crate) agent_buttons: Vec<(Button, Agent)>,
 
     #[new(value = "false")]
-    pub waiting_on_agent: bool,
+    pub(crate) waiting_on_agent: bool,
 
     #[new(value = "None")]
-    pub last_move: Option<(Loc, Loc)>,
+    pub(crate) last_move: Option<(Loc, Loc)>,
 
     /// (loc of piece that is being tweened, tween)
     #[new(value = "None")]
-    pub current_tween: Option<(Loc, Tween)>,
+    pub(crate) current_tween: Option<(Loc, Tween)>,
 
     #[new(value = "vec![]")]
-    pub arrows: Vec<(Loc, Loc)>,
+    pub(crate) arrows: Vec<(Loc, Loc)>,
 
     #[new(value = "None")]
-    pub drag_start: Option<Loc>,
+    pub(crate) drag_start: Option<Loc>,
 
     #[new(value = "None")]
-    pub drag_end: Option<Loc>,
+    pub(crate) drag_end: Option<Loc>,
 
     #[new(value = "hashset!{}")]
-    pub highlights: FxHashSet<Loc>,
+    pub(crate) highlights: FxHashSet<Loc>,
 
     #[allow(clippy::type_complexity)]
     #[new(value = "unbounded()")]
-    pub agent_channel: (Sender<Option<(Loc, Loc)>>, Receiver<Option<(Loc, Loc)>>),
+    pub(crate) agent_channel: (Sender<Option<(Loc, Loc)>>, Receiver<Option<(Loc, Loc)>>),
 }
 impl Game {
     fn get_clicked_square(&self, button: MouseButton) -> Option<Loc> {
@@ -154,6 +154,9 @@ impl Game {
                 self.clear_arrows_highlights();
             }
         }
+        // if is_key_pressed(KeyCode::X) {
+        //     crate::agent_opens::create_openings();
+        // }
     }
 
     fn update_buttons(&mut self) {
@@ -232,7 +235,7 @@ impl Game {
         self.drag_start = None;
     }
 
-    pub fn update_arrows_highlights(&mut self) {
+    pub(crate) fn update_arrows_highlights(&mut self) {
         if is_mouse_button_down(MouseButton::Left) {
             self.clear_arrows_highlights();
         }
@@ -272,7 +275,7 @@ impl Game {
         }
     }
 
-    pub fn update(&mut self) {
+    pub(crate) fn update(&mut self) {
         self.update_keys();
         self.update_buttons();
         self.update_arrows_highlights();

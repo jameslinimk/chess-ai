@@ -16,7 +16,7 @@
 		"description": "Create a new derive-new macro default value",
 		"body": [
 			"#[new(value = \"$1\")]",
-			"pub $2,"
+			"pub(crate) $2,"
 		]
 	},
 	"quick log": {

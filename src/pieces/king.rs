@@ -4,7 +4,7 @@ use crate::board::Board;
 use crate::util::Loc;
 use crate::{color_ternary, loc};
 
-pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
+pub(crate) fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     let directions = vec![
         (0, -1),
         (0, 1),
@@ -49,7 +49,7 @@ pub fn king_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     moves
 }
 
-pub fn king_attacks(piece: &Piece) -> Vec<Loc> {
+pub(crate) fn king_attacks(piece: &Piece) -> Vec<Loc> {
     let directions = vec![
         (0, -1),
         (0, 1),

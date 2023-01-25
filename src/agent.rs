@@ -25,12 +25,12 @@ use crate::pieces::piece::PieceNames;
 use crate::util::{choose_array, Loc};
 use crate::{color_ternary, hashmap, ternary};
 
-pub fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
+fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
     let moves = board.get_moves(board.agent_color);
     moves.choose().copied()
 }
 
-pub const DEPTH: u8 = 4;
+const DEPTH: u8 = 4;
 const MAX: i32 = i32::MAX - 1;
 
 /// Minimax agent with alpha-beta pruning and sorted move ordering
@@ -87,17 +87,20 @@ fn minimax(
         }
 
         if let Some(moves) = OPENINGS.get(&board.hash) {
-            info!("Opening found!");
-            return (MAX, Some(*choose_array(moves)));
+            let (opening, name) = choose_array(moves);
+            info!("Opening found! {}", name);
+            return (MAX, Some(*opening));
         }
     }
 
     // Check if the current board state is already stored in the transposition table
     let stored_data = trans_table.get(&board.hash);
+    let mut greater_depth = false;
     if let Some((stored_depth, stored_score, stored_best)) = stored_data {
         if stored_depth >= &depth {
             return (*stored_score, *stored_best);
         }
+        greater_depth = true;
     }
 
     // Get the sorted legal moves for the current turn
@@ -148,12 +151,14 @@ fn minimax(
     }
 
     // Store the data in the transposition table
-    trans_table.insert(board.hash, (depth, best_score, best_move));
+    if greater_depth {
+        trans_table.insert(board.hash, (depth, best_score, best_move));
+    }
     (best_score, best_move)
 }
 
 /// Wrapper for minimax
-pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
+fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
     if board.is_over() {
         return None;
     }
@@ -163,13 +168,13 @@ pub fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// List of agents for [Board] to use
-pub enum Agent {
+pub(crate) enum Agent {
     Minimax,
     Control,
     Random,
 }
 impl Agent {
-    pub fn get_move(&self, board: &Board) -> Option<(Loc, Loc)> {
+    pub(crate) fn get_move(&self, board: &Board) -> Option<(Loc, Loc)> {
         match self {
             Agent::Minimax => minimax_agent(board),
             Agent::Random => random_agent(board),
@@ -178,7 +183,7 @@ impl Agent {
     }
 }
 
-pub const AGENTS: [(&str, Agent); 3] = [
+pub(crate) const AGENTS: [(&str, Agent); 3] = [
     ("Random", Agent::Random),
     ("Control", Agent::Control),
     ("Minimax", Agent::Minimax),

@@ -116,7 +116,7 @@ fn table_value(piece: &Piece, endgame: bool) -> i32 {
     table[piece.pos.1][piece.pos.0]
 }
 
-pub fn piece_value(piece: &PieceNames) -> i32 {
+pub(crate) fn piece_value(piece: &PieceNames) -> i32 {
     match piece {
         PieceNames::Pawn => 100,
         PieceNames::Knight => 320,
@@ -127,16 +127,16 @@ pub fn piece_value(piece: &PieceNames) -> i32 {
     }
 }
 
-pub fn full_piece_value(piece: &Piece, endgame: bool) -> i32 {
+pub(crate) fn full_piece_value(piece: &Piece, endgame: bool) -> i32 {
     piece_value(&piece.name) + table_value(piece, endgame)
 }
 
-pub const CHECK_VALUE: i32 = 50;
-pub const CHECKMATE_VALUE: i32 = 20000;
-pub const STALEMATE_VALUE: i32 = -100;
+pub(crate) const CHECK_VALUE: i32 = 50;
+pub(crate) const CHECKMATE_VALUE: i32 = 20000;
+pub(crate) const STALEMATE_VALUE: i32 = -100;
 
 impl Board {
-    pub fn get_sorted_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
+    pub(crate) fn get_sorted_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
         let mut moves = self.get_moves(color);
 
         color_ternary!(
@@ -155,7 +155,7 @@ impl Board {
     }
 
     /// Calculates the score of the board, for the white
-    pub fn get_score(&self) -> i32 {
+    pub(crate) fn get_score(&self) -> i32 {
         let mut score = 0;
 
         match self.state {
@@ -184,7 +184,7 @@ impl Board {
         score
     }
 
-    pub fn move_value(&self, from: &Loc, to: &Loc) -> i32 {
+    pub(crate) fn move_value(&self, from: &Loc, to: &Loc) -> i32 {
         let piece = match self.get(from) {
             Some(piece) => piece,
             None => {
@@ -206,7 +206,7 @@ impl Board {
             }
             // Moving king without developed minors
             PieceNames::Queen if self.agent_developments != ((true, true), (true, true)) => {
-                score -= 25;
+                score -= 100;
             }
             _ => {}
         }

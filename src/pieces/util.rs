@@ -7,12 +7,12 @@ use super::piece::Piece;
 use crate::board::{Board, ChessColor};
 use crate::util::Loc;
 
-pub fn valid_pos(location: &Loc) -> bool {
+pub(crate) fn valid_pos(location: &Loc) -> bool {
     !(location.0 >= 8 || location.1 >= 8)
 }
 
 /// Adds to moves if the move is valid and doesn't capture friendly
-pub fn add(board: &Board, color: &ChessColor, location: Loc, moves: &mut Vec<Loc>) {
+pub(crate) fn add(board: &Board, color: &ChessColor, location: Loc, moves: &mut Vec<Loc>) {
     if valid_pos(&location) {
         if let Some(piece) = board.get(&location) {
             if &piece.color == color {
@@ -24,14 +24,14 @@ pub fn add(board: &Board, color: &ChessColor, location: Loc, moves: &mut Vec<Loc
 }
 
 /// Adds to moves if the move is valid
-pub fn add_ff(location: Loc, moves: &mut Vec<Loc>) {
+pub(crate) fn add_ff(location: Loc, moves: &mut Vec<Loc>) {
     if valid_pos(&location) {
         moves.push(location);
     }
 }
 
 /// Get all moves for static pieces
-pub fn static_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
+pub(crate) fn static_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
         let (loc, out) = piece.pos.copy_move_i32(*x, *y);
@@ -44,7 +44,7 @@ pub fn static_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> 
 }
 
 /// Get all attack squares for static pieces
-pub fn static_attacks(piece: &Piece, directions: &[(i32, i32)]) -> Vec<Loc> {
+pub(crate) fn static_attacks(piece: &Piece, directions: &[(i32, i32)]) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
         let (loc, out) = piece.pos.copy_move_i32(*x, *y);
@@ -57,7 +57,11 @@ pub fn static_attacks(piece: &Piece, directions: &[(i32, i32)]) -> Vec<Loc> {
 }
 
 /// Get all moves for directional pieces
-pub fn directional_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
+pub(crate) fn directional_moves(
+    piece: &Piece,
+    board: &Board,
+    directions: &[(i32, i32)],
+) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
         let (mut loc, out) = piece.pos.copy_move_i32(*x, *y);
@@ -82,7 +86,11 @@ pub fn directional_moves(piece: &Piece, board: &Board, directions: &[(i32, i32)]
 }
 
 /// Get all attack squares for directional pieces
-pub fn directional_attacks(piece: &Piece, board: &Board, directions: &[(i32, i32)]) -> Vec<Loc> {
+pub(crate) fn directional_attacks(
+    piece: &Piece,
+    board: &Board,
+    directions: &[(i32, i32)],
+) -> Vec<Loc> {
     let mut moves = vec![];
     for (x, y) in directions.iter() {
         let (mut loc, out) = piece.pos.copy_move_i32(*x, *y);

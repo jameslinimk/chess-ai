@@ -8,24 +8,22 @@ use serde_json::from_str;
 
 use crate::util::Loc;
 
-type Openings = FxHashMap<u64, Vec<(Loc, Loc)>>;
+type Openings = FxHashMap<u64, Vec<((Loc, Loc), String)>>;
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(target_pointer_width = "64")]
 lazy_static! {
-    pub static ref OPENINGS: Openings =
-        from_str(from_utf8(include_bytes!("../assets/openings.json")).unwrap()).unwrap();
+    pub(crate) static ref OPENINGS: Openings =
+        from_str(from_utf8(include_bytes!("../assets/openings_64.json")).unwrap()).unwrap();
 }
 
-#[cfg(target_family = "wasm")]
+#[cfg(target_pointer_width = "32")]
 lazy_static! {
-    pub static ref OPENINGS: Openings =
-        from_str(from_utf8(include_bytes!("../assets/wasm_openings.json")).unwrap()).unwrap();
+    pub(crate) static ref OPENINGS: Openings =
+        from_str(from_utf8(include_bytes!("../assets/openings_32.json")).unwrap()).unwrap();
 }
 
 #[test]
 fn create_openings() {
-    use std::fs::write;
-
     use serde::{Deserialize, Serialize};
     use serde_json::to_string;
 
@@ -36,7 +34,7 @@ fn create_openings() {
     use crate::{color_ternary, hashmap, loc, ternary};
 
     #[derive(Serialize, Deserialize, Debug)]
-    pub struct RawOpening {
+    struct RawOpening {
         name: String,
         code: String,
         moves: Vec<String>,
@@ -184,20 +182,22 @@ fn create_openings() {
             };
 
             if let Some(vec) = new_openings.get_mut(&board.hash) {
-                vec.push((from, to));
+                vec.push(((from, to), opening.name.to_owned()));
             } else {
-                new_openings.insert(board.hash, vec![(from, to)]);
+                new_openings.insert(board.hash, vec![((from, to), opening.name.to_owned())]);
             }
 
             board.move_piece(&from, &to, true);
         }
     }
 
-    // info!("{}", to_string(&new_openings).unwrap());
-
-    write(
-        "assets/openings.json",
-        to_string(&new_openings).unwrap().as_bytes(),
-    )
-    .unwrap();
+    #[cfg(target_pointer_width = "64")]
+    {
+        let path = "assets/openings_64.json";
+        std::fs::write(path, to_string(&new_openings).unwrap().as_bytes()).unwrap();
+    }
+    #[cfg(target_pointer_width = "32")]
+    {
+        macroquad::prelude::info!("{}", to_string(&new_openings).unwrap());
+    }
 }

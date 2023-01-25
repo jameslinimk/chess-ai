@@ -6,7 +6,7 @@ use crate::util::Loc;
 
 /// Adds to moves if the move is on the board and is empty
 /// - Returns true if added, false else
-pub fn add_if_empty(board: &Board, location: Loc, moves: &mut Vec<Loc>) -> bool {
+pub(crate) fn add_if_empty(board: &Board, location: Loc, moves: &mut Vec<Loc>) -> bool {
     if valid_pos(&location) && board.get(&location).is_none() {
         moves.push(location);
         return true;
@@ -15,7 +15,12 @@ pub fn add_if_empty(board: &Board, location: Loc, moves: &mut Vec<Loc>) -> bool 
 }
 
 /// Adds to moves if the move is a capture
-pub fn add_if_capture(board: &Board, color: &ChessColor, location: Loc, moves: &mut Vec<Loc>) {
+pub(crate) fn add_if_capture(
+    board: &Board,
+    color: &ChessColor,
+    location: Loc,
+    moves: &mut Vec<Loc>,
+) {
     if valid_pos(&location) {
         if let Some(capture) = board.get(&location) {
             if &capture.color != color {
@@ -25,7 +30,7 @@ pub fn add_if_capture(board: &Board, color: &ChessColor, location: Loc, moves: &
     }
 }
 
-pub fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
+pub(crate) fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     let mut moves = vec![];
     let direction = color_ternary!(piece.color, -1, 1);
 
@@ -73,7 +78,7 @@ pub fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     moves
 }
 
-pub fn pawn_attacks(piece: &Piece) -> Vec<Loc> {
+pub(crate) fn pawn_attacks(piece: &Piece) -> Vec<Loc> {
     let mut moves = vec![];
     let direction = color_ternary!(piece.color, -1, 1);
 

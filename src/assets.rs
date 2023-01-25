@@ -18,7 +18,7 @@ lazy_static! {
 }
 
 /// Get an previously loaded image from the asset map
-pub fn get_image(path: &str) -> Texture2D {
+pub(crate) fn get_image(path: &str) -> Texture2D {
     match ASSET_MAP.lock().unwrap().get(path) {
         Some(texture) => texture.to_owned(),
         None => panic!("{}", format!("Path \"{path}\" not loaded!")),
@@ -26,7 +26,7 @@ pub fn get_image(path: &str) -> Texture2D {
 }
 
 /// Load image bytes into the asset map
-pub async fn load_image_from_bytes(path: &str, bytes: &[u8]) -> Texture2D {
+pub(crate) async fn load_image_from_bytes(path: &str, bytes: &[u8]) -> Texture2D {
     if ASSET_MAP.lock().unwrap().contains_key(path) {
         return get_image(path);
     }
@@ -40,7 +40,7 @@ pub async fn load_image_from_bytes(path: &str, bytes: &[u8]) -> Texture2D {
 }
 
 /// Get an previously loaded audio file from the audio map
-pub fn get_audio(path: &str) -> Sound {
+pub(crate) fn get_audio(path: &str) -> Sound {
     match AUDIO_MAP.lock().unwrap().get(path) {
         Some(texture) => texture.to_owned(),
         None => panic!("{}", format!("Path \"{path}\" not loaded!")),
@@ -48,7 +48,7 @@ pub fn get_audio(path: &str) -> Sound {
 }
 
 /// Load audio bytes into the audio map
-pub async fn load_audio_from_bytes(path: &str, bytes: &[u8]) -> Sound {
+pub(crate) async fn load_audio_from_bytes(path: &str, bytes: &[u8]) -> Sound {
     if AUDIO_MAP.lock().unwrap().contains_key(path) {
         return get_audio(path);
     }

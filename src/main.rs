@@ -21,17 +21,17 @@ use macroquad::window::clear_background;
 
 use crate::camera::get_camera;
 
-pub mod agent;
-pub mod agent_opens;
-pub mod assets;
-pub mod board;
-pub mod board_eval;
-pub mod board_extras;
-pub mod camera;
-pub mod conf;
-pub mod game;
-pub mod pieces;
-pub mod util;
+pub(crate) mod agent;
+pub(crate) mod agent_opens;
+pub(crate) mod assets;
+pub(crate) mod board;
+pub(crate) mod board_eval;
+pub(crate) mod board_extras;
+pub(crate) mod camera;
+pub(crate) mod conf;
+pub(crate) mod game;
+pub(crate) mod pieces;
+pub(crate) mod util;
 
 #[cfg(not(windows))]
 fn config() -> Conf {
@@ -83,7 +83,7 @@ fn config() -> Conf {
 static mut FONT: Option<Font> = None;
 
 /// Safely get [FONT] in safe code
-pub fn get_font() -> Font {
+pub(crate) fn get_font() -> Font {
     unsafe { FONT.unwrap() }
 }
 
@@ -138,8 +138,10 @@ async fn load_images() {
     .await;
 }
 
-pub const CONFIG_LINK: &str = "https://github.com/jameslinimk/chess-ai/raw/master/Cargo.toml";
-pub const GITHUB_LINK: &str = "https://github.com/jameslinimk/chess-ai";
+#[cfg(not(target_family = "wasm"))]
+const CONFIG_LINK: &str = "https://github.com/jameslinimk/chess-ai/raw/master/Cargo.toml";
+#[cfg(not(target_family = "wasm"))]
+const GITHUB_LINK: &str = "https://github.com/jameslinimk/chess-ai";
 
 #[cfg(not(target_family = "wasm"))]
 fn color_convert(color: macroquad::prelude::Color) -> Color {

@@ -26,7 +26,7 @@ const ENUMERATES: [(usize, usize); 64] = [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0)
 
 impl Board {
     /// Generate a new board given a FEN string
-    pub fn from_fen(fen: &str) -> Board {
+    pub(crate) fn from_fen(fen: &str) -> Board {
         let mut fen_parts = fen.split_whitespace();
 
         /* -------------------------------- Board fen ------------------------------- */
@@ -115,7 +115,7 @@ impl Board {
     }
 
     /// Export the board into FEN
-    pub fn as_fen(&self) -> String {
+    pub(crate) fn as_fen(&self) -> String {
         let mut fen = "".to_string();
 
         let mut board_fen = vec![];
@@ -193,7 +193,7 @@ impl Board {
 
     /// Draws the board to the screen
     #[allow(unused_variables)]
-    pub fn draw(
+    pub(crate) fn draw(
         &self,
         highlight_moves: &[Loc],
         last_move: &Option<(Loc, Loc)>,
@@ -338,7 +338,7 @@ impl Board {
     }
 
     /// Prints board to console
-    pub fn print(&self) {
+    pub(crate) fn print(&self) {
         for row in self.raw.iter() {
             for piece in row.iter() {
                 match piece {
@@ -360,7 +360,7 @@ impl Board {
     }
 
     /// Returns a tuple of the locations of the kings (white, black)
-    pub fn get_kings(&self) -> (Option<Loc>, Option<Loc>) {
+    pub(crate) fn get_kings(&self) -> (Option<Loc>, Option<Loc>) {
         let mut white_king = None;
         let mut black_king = None;
         for piece in self.raw.iter().flatten().flatten() {
@@ -375,7 +375,7 @@ impl Board {
         (white_king, black_king)
     }
 
-    pub fn get_attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
+    pub(crate) fn get_attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
         let mut attacks = hashset! {};
         for piece in self.raw.iter().flatten().flatten() {
             if piece.color == color {
@@ -386,15 +386,15 @@ impl Board {
     }
 
     /* ----------------------------- Util functions ----------------------------- */
-    pub fn get(&self, loc: &Loc) -> Option<Piece> {
+    pub(crate) fn get(&self, loc: &Loc) -> Option<Piece> {
         self.raw[loc.1][loc.0]
     }
 
-    pub fn set(&mut self, loc: &Loc, value: Option<Piece>) {
+    pub(crate) fn set(&mut self, loc: &Loc, value: Option<Piece>) {
         self.raw[loc.1][loc.0] = value;
     }
 
-    pub fn get_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
+    pub(crate) fn get_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
         let mut moves = vec![];
         for piece in self.raw.iter().flatten().flatten() {
             if piece.color == color {
@@ -407,12 +407,12 @@ impl Board {
     }
 
     /// Returns the number of full moves
-    pub fn full_moves(&self) -> u32 {
+    pub(crate) fn full_moves(&self) -> u32 {
         self.half_moves / 2
     }
 
     /// Checks if the game is over
-    pub fn is_over(&self) -> bool {
+    pub(crate) fn is_over(&self) -> bool {
         matches!(
             self.state,
             BoardState::Checkmate(_) | BoardState::Stalemate | BoardState::Draw
@@ -420,7 +420,7 @@ impl Board {
     }
 
     /// Returns a hash of the board, with castling and en passent included
-    pub fn get_hash(&self) -> u64 {
+    pub(crate) fn hash(&self) -> u64 {
         let mut hasher = FxHasher::default();
         self.raw.hash(&mut hasher);
         self.castle_white.hash(&mut hasher);
@@ -443,7 +443,7 @@ fn piece_to_char(name: &PieceNames) -> char {
 }
 
 /// Converts a string to a piece
-pub fn char_to_piece(c: &char) -> PieceNames {
+pub(crate) fn char_to_piece(c: &char) -> PieceNames {
     match c.to_ascii_lowercase() {
         'p' => PieceNames::Pawn,
         'n' => PieceNames::Knight,

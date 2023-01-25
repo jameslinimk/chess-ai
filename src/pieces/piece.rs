@@ -14,7 +14,7 @@ use crate::color_ternary;
 use crate::util::Loc;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum PieceNames {
+pub(crate) enum PieceNames {
     Pawn,
     Bishop,
     Knight,
@@ -24,19 +24,19 @@ pub enum PieceNames {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, new)]
-pub struct Piece {
+pub(crate) struct Piece {
     /// Type of piece
-    pub name: PieceNames,
+    pub(crate) name: PieceNames,
     /// The color of the piece
-    pub color: ChessColor,
+    pub(crate) color: ChessColor,
     /// Piece's current position on the board
     /// - Make sure to update this when moving the piece
-    pub pos: Loc,
+    pub(crate) pos: Loc,
 }
 
 impl Piece {
     /// Get valid moves for this piece
-    pub fn get_moves(&self, board: &Board) -> Vec<Loc> {
+    pub(crate) fn get_moves(&self, board: &Board) -> Vec<Loc> {
         let mut temp_moves = match self.name {
             PieceNames::Pawn => pawn_moves(self, board),
             PieceNames::Knight => knight_moves(self, board),
@@ -69,7 +69,7 @@ impl Piece {
     }
 
     /// Get squares that are attacked by this piece
-    pub fn get_attacks(&self, board: &Board) -> Vec<Loc> {
+    pub(crate) fn get_attacks(&self, board: &Board) -> Vec<Loc> {
         match self.name {
             PieceNames::Pawn => pawn_attacks(self),
             PieceNames::Knight => knight_attacks(self),
@@ -81,7 +81,7 @@ impl Piece {
     }
 
     /// Get image texture for this piece
-    pub fn get_image(&self) -> Texture2D {
+    pub(crate) fn get_image(&self) -> Texture2D {
         let path = match self.color {
             ChessColor::White => match self.name {
                 PieceNames::Pawn => "assets/pieces/white_pawn.png",
@@ -104,7 +104,7 @@ impl Piece {
     }
 
     /// Get the piece value
-    pub fn get_value(&self) -> i32 {
+    pub(crate) fn get_value(&self) -> i32 {
         piece_value(&self.name)
     }
 }
