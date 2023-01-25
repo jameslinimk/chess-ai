@@ -35,7 +35,7 @@ const MAX: i32 = i32::MAX - 1;
 const TIMEOUT_SCORE: i32 = i32::MAX - 2;
 
 /// Minimax agent with alpha-beta pruning and sorted move ordering
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn minimax(
     board: &Board,
     maximizing: bool,
@@ -44,8 +44,9 @@ fn minimax(
     mut beta: i32,
     trans_table: &mut FxHashMap<u64, (u8, i32, Option<(Loc, Loc)>)>,
     start_time: f64,
+    antimax: bool,
 ) -> (i32, Option<(Loc, Loc)>) {
-    if maximizing {
+    if (!antimax && maximizing) || (antimax && !maximizing) {
         assert_eq!(board.turn, ChessColor::White);
     } else {
         assert_eq!(board.turn, ChessColor::Black);
@@ -56,9 +57,10 @@ fn minimax(
         return (board.score, None);
     }
 
-    // Very first move
-    if board.full_moves() == 0 && board.agent_color == ChessColor::Black {
-        macro_rules! responses {
+    if !antimax {
+        // Very first move
+        if board.full_moves() == 0 && board.agent_color == ChessColor::Black {
+            macro_rules! responses {
                 ($($key:expr => $value:expr,)+) => { responses!($($key => $value),+) };
                 ($($key:expr => $value:expr),*) => {
                     $(
@@ -73,23 +75,24 @@ fn minimax(
                 };
             }
 
-        responses! {
-            // e4 -> e5, e6, c5
-            (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5")],
-            // d4 -> d5, c6, Nf6, Nc6
-            (PieceNames::Pawn, "d4") => [("d7", "d5"), ("g8", "f6"), ("b8", "c6")],
-            // c4 -> e5, Nf6
-            (PieceNames::Pawn, "c4") => [("e7", "e5"), ("g8", "f6")],
-            // Nf3 -> e5, Nf6
-            (PieceNames::Knight, "f3") => [("e7", "e5"), ("g8", "f6")],
-        };
-    }
+            responses! {
+                // e4 -> e5, e6, c5
+                (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5")],
+                // d4 -> d5, c6, Nf6, Nc6
+                (PieceNames::Pawn, "d4") => [("d7", "d5"), ("g8", "f6"), ("b8", "c6")],
+                // c4 -> e5, Nf6
+                (PieceNames::Pawn, "c4") => [("e7", "e5"), ("g8", "f6")],
+                // Nf3 -> e5, Nf6
+                (PieceNames::Knight, "f3") => [("e7", "e5"), ("g8", "f6")],
+            };
+        }
 
-    // Openings
-    if let Some(moves) = OPENINGS.get(&board.hash) {
-        let (opening, name) = choose_array(moves);
-        info!("Opening found! {}", name);
-        return (MAX, Some(*opening));
+        // Openings
+        if let Some(moves) = OPENINGS.get(&board.hash) {
+            let (opening, name) = choose_array(moves);
+            info!("Opening found! {}", name);
+            return (MAX, Some(*opening));
+        }
     }
 
     // Check if the current board state is already stored in the transposition table
@@ -125,6 +128,7 @@ fn minimax(
             beta,
             trans_table,
             start_time,
+            antimax,
         );
 
         if score == MAX {
@@ -165,7 +169,7 @@ fn minimax(
 const MAX_TIME: f64 = 4.0;
 
 /// Wrapper for minimax, using iterative deepening
-fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
+fn minimax_agent(board: &Board, antimax: bool) -> Option<(Loc, Loc)> {
     if board.is_over() {
         return None;
     }
@@ -180,12 +184,13 @@ fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
 
         let (score, bm) = minimax(
             board,
-            false,
+            antimax,
             i,
             i32::MIN,
             i32::MAX,
             &mut trans_table,
             start_time,
+            antimax,
         );
 
         let time_took = get_time() - start_time;
@@ -209,21 +214,24 @@ fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
 /// List of agents for [Board] to use
 pub(crate) enum Agent {
     Minimax,
+    Antimax,
     Control,
     Random,
 }
 impl Agent {
     pub(crate) fn get_move(&self, board: &Board) -> Option<(Loc, Loc)> {
         match self {
-            Agent::Minimax => minimax_agent(board),
+            Agent::Minimax => minimax_agent(board, false),
+            Agent::Antimax => minimax_agent(board, true),
             Agent::Random => random_agent(board),
             Agent::Control => None,
         }
     }
 }
 
-pub(crate) const AGENTS: [(&str, Agent); 3] = [
+pub(crate) const AGENTS: [(&str, Agent); 4] = [
     ("Random", Agent::Random),
     ("Control", Agent::Control),
+    ("Antimax", Agent::Antimax),
     ("Minimax", Agent::Minimax),
 ];
