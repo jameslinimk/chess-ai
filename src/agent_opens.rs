@@ -55,8 +55,8 @@ fn create_openings() {
 
             let legal_moves = color_ternary!(
                 board.turn,
-                board.get_moves(ChessColor::White),
-                board.get_moves(ChessColor::Black)
+                board.moves(ChessColor::White),
+                board.moves(ChessColor::Black)
             );
 
             let (from, to) = 'main: {

@@ -36,7 +36,7 @@ pub(crate) struct Piece {
 
 impl Piece {
     /// Get valid moves for this piece
-    pub(crate) fn get_moves(&self, board: &Board) -> Vec<Loc> {
+    pub(crate) fn moves(&self, board: &Board) -> Vec<Loc> {
         let mut temp_moves = match self.name {
             PieceNames::Pawn => pawn_moves(self, board),
             PieceNames::Knight => knight_moves(self, board),
@@ -69,7 +69,7 @@ impl Piece {
     }
 
     /// Get squares that are attacked by this piece
-    pub(crate) fn get_attacks(&self, board: &Board) -> Vec<Loc> {
+    pub(crate) fn attacks(&self, board: &Board) -> Vec<Loc> {
         match self.name {
             PieceNames::Pawn => pawn_attacks(self),
             PieceNames::Knight => knight_attacks(self),
@@ -81,7 +81,7 @@ impl Piece {
     }
 
     /// Get image texture for this piece
-    pub(crate) fn get_image(&self) -> Texture2D {
+    pub(crate) fn image(&self) -> Texture2D {
         let path = match self.color {
             ChessColor::White => match self.name {
                 PieceNames::Pawn => "assets/pieces/white_pawn.png",
@@ -104,7 +104,7 @@ impl Piece {
     }
 
     /// Get the piece value
-    pub(crate) fn get_value(&self) -> i32 {
+    pub(crate) fn value(&self) -> i32 {
         piece_value(&self.name)
     }
 }

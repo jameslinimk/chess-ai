@@ -255,7 +255,7 @@ impl Board {
                             if loc == &loc!(x, y) {
                                 let (x, y) = tween.update();
                                 draw_texture(
-                                    piece.get_image(),
+                                    piece.image(),
                                     MARGIN + SQUARE_SIZE * x,
                                     MARGIN + SQUARE_SIZE * y,
                                     WHITE,
@@ -266,7 +266,7 @@ impl Board {
 
                         if !tweened {
                             draw_texture_ex(
-                                piece.get_image(),
+                                piece.image(),
                                 MARGIN + SQUARE_SIZE * x as f32,
                                 MARGIN + SQUARE_SIZE * y as f32,
                                 WHITE,
@@ -360,7 +360,7 @@ impl Board {
     }
 
     /// Returns a tuple of the locations of the kings (white, black)
-    pub(crate) fn get_kings(&self) -> (Option<Loc>, Option<Loc>) {
+    pub(crate) fn kings(&self) -> (Option<Loc>, Option<Loc>) {
         let mut white_king = None;
         let mut black_king = None;
         for piece in self.raw.iter().flatten().flatten() {
@@ -375,11 +375,11 @@ impl Board {
         (white_king, black_king)
     }
 
-    pub(crate) fn get_attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
+    pub(crate) fn attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
         let mut attacks = hashset! {};
         for piece in self.raw.iter().flatten().flatten() {
             if piece.color == color {
-                attacks.extend(piece.get_attacks(self));
+                attacks.extend(piece.attacks(self));
             }
         }
         attacks
@@ -394,11 +394,11 @@ impl Board {
         self.raw[loc.1][loc.0] = value;
     }
 
-    pub(crate) fn get_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
+    pub(crate) fn moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
         let mut moves = vec![];
         for piece in self.raw.iter().flatten().flatten() {
             if piece.color == color {
-                for m in piece.get_moves(self) {
+                for m in piece.moves(self) {
                     moves.push((piece.pos, m));
                 }
             }

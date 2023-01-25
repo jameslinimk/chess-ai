@@ -201,11 +201,11 @@ impl Board {
     /// Updates "things", such as the game state, checks, attacks, etc. Auto called by `move_piece`
     pub(crate) fn update_things(&mut self, check_stale: bool) {
         // Update attacks (relies on nothing)
-        self.attacks_white = self.get_attacks(ChessColor::White);
-        self.attacks_black = self.get_attacks(ChessColor::Black);
+        self.attacks_white = self.attacks(ChessColor::White);
+        self.attacks_black = self.attacks(ChessColor::Black);
 
         // Update check (relies on attacks)
-        let (white_king, black_king) = self.get_kings();
+        let (white_king, black_king) = self.kings();
         if let Some(white_king) = white_king {
             self.check_white = self.attacks_black.contains(&white_king);
         } else {
@@ -222,8 +222,8 @@ impl Board {
 
         // Update moves (relies on attacks and blockers)
         if check_stale {
-            self.moves_white = self.get_moves(ChessColor::White);
-            self.moves_black = self.get_moves(ChessColor::Black);
+            self.moves_white = self.moves(ChessColor::White);
+            self.moves_black = self.moves(ChessColor::Black);
         }
 
         // Detect state (relies on check and moves)
@@ -246,7 +246,7 @@ impl Board {
         };
 
         // Set score (relies on state, endgame)
-        self.score = self.get_score();
+        self.score = self.score();
     }
 
     /// Detect wether the players are in check, checkmate or stalemate

@@ -26,7 +26,7 @@ use crate::util::{choose_array, Loc};
 use crate::{color_ternary, hashmap, ternary};
 
 fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
-    let moves = board.get_moves(board.agent_color);
+    let moves = board.moves(board.agent_color);
     moves.choose().copied()
 }
 
@@ -65,6 +65,7 @@ fn minimax(
                         if let Some(piece) = board.get(&Loc::from_notation($key.1)) {
                             if piece.name == $key.0 {
                                 let m = choose_array(&$value);
+                                info!("First move found!");
                                 return (MAX, Some((Loc::from_notation(m.0), Loc::from_notation(m.1))));
                             }
                         }
@@ -73,8 +74,8 @@ fn minimax(
             }
 
             responses! {
-                // e4 -> e5, e6, c5
-                (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5")],
+                // e4 -> e5, e6, c5, d5
+                (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5"), ("d7", "d5")],
                 // d4 -> d5, c6, Nf6, Nc6
                 (PieceNames::Pawn, "d4") => [("d7", "d5"), ("g8", "f6"), ("b8", "c6")],
                 // c4 -> e5, Nf6
@@ -82,8 +83,6 @@ fn minimax(
                 // Nf3 -> e5, Nf6
                 (PieceNames::Knight, "f3") => [("e7", "e5"), ("g8", "f6")],
             };
-
-            info!("First opening found!");
         }
 
         if let Some(moves) = OPENINGS.get(&board.hash) {
@@ -106,8 +105,8 @@ fn minimax(
     // Get the sorted legal moves for the current turn
     let moves = color_ternary!(
         board.turn,
-        board.get_sorted_moves(ChessColor::White),
-        board.get_sorted_moves(ChessColor::Black)
+        board.sorted_moves(ChessColor::White),
+        board.sorted_moves(ChessColor::Black)
     );
 
     let mut best_score = ternary!(maximizing, i32::MIN, i32::MAX);

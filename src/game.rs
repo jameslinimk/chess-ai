@@ -15,14 +15,14 @@ use rustc_hash::FxHashSet;
 use crate::agent::{Agent, AGENTS};
 use crate::assets::get_audio;
 use crate::board::Board;
-use crate::camera::get_camera;
+use crate::camera::camera;
 use crate::conf::{
     CENTER_HEIGHT, CENTER_WIDTH, COLOR_BACKGROUND, COLOR_WHITE, EXTRA_WIDTH, FEN, HEIGHT, MARGIN,
     SQUARE_SIZE,
 };
 use crate::pieces::piece::Piece;
 use crate::util::{multiline_text_ex, pos_to_board, Button, Loc, Tween};
-use crate::{get_font, hashset, ternary};
+use crate::{font, hashset, ternary};
 
 #[derive(Clone, new)]
 pub(crate) struct Game {
@@ -88,9 +88,9 @@ pub(crate) struct Game {
     pub(crate) agent_channel: (Sender<Option<(Loc, Loc)>>, Receiver<Option<(Loc, Loc)>>),
 }
 impl Game {
-    fn get_clicked_square(&self, button: MouseButton) -> Option<Loc> {
+    fn clicked_square(&self, button: MouseButton) -> Option<Loc> {
         if is_mouse_button_pressed(button) {
-            return pos_to_board(get_camera().mouse_position().into());
+            return pos_to_board(camera().mouse_position().into());
         }
 
         None
@@ -187,7 +187,7 @@ impl Game {
                 font_size: 15,
                 font_scale: 1.0,
                 color: COLOR_WHITE,
-                font: get_font(),
+                font: font(),
                 ..Default::default()
             },
         )
@@ -200,7 +200,7 @@ impl Game {
             font_size: 30,
             font_scale: 1.0,
             color: COLOR_BACKGROUND,
-            font: get_font(),
+            font: font(),
             ..Default::default()
         };
 
@@ -242,11 +242,11 @@ impl Game {
 
         if is_mouse_button_down(MouseButton::Right) {
             if self.drag_start.is_none() {
-                self.drag_start = pos_to_board(get_camera().mouse_position().into());
+                self.drag_start = pos_to_board(camera().mouse_position().into());
                 return;
             }
 
-            let pos = pos_to_board(get_camera().mouse_position().into());
+            let pos = pos_to_board(camera().mouse_position().into());
             if self.drag_start != pos {
                 self.drag_end = pos;
             }
@@ -281,7 +281,7 @@ impl Game {
         self.update_arrows_highlights();
 
         if self.agent == Agent::Control || self.board.turn == self.board.player_color {
-            if let Some(clicked) = self.get_clicked_square(MouseButton::Left) {
+            if let Some(clicked) = self.clicked_square(MouseButton::Left) {
                 // Click same place
                 if self.selected.is_some() && self.selected.unwrap().pos == clicked {
                     self.selected = None;
@@ -293,7 +293,7 @@ impl Game {
                 } else if let Some(piece) = self.board.get(&clicked) {
                     if piece.color == self.board.turn {
                         self.selected = Some(piece);
-                        self.highlight_moves = self.selected.unwrap().get_moves(&self.board);
+                        self.highlight_moves = self.selected.unwrap().moves(&self.board);
                     }
                 }
             }

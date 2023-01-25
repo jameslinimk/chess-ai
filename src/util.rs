@@ -9,11 +9,11 @@ use macroquad::text::{draw_text_ex, measure_text, TextDimensions, TextParams};
 use macroquad::time::get_frame_time;
 use serde::{Deserialize, Serialize};
 
-use crate::camera::get_camera;
+use crate::camera::camera;
 use crate::conf::{
     COLOR_BUTTON, COLOR_BUTTON_HOVER, COLOR_BUTTON_PRESSED, COLOR_WHITE, MARGIN, SQUARE_SIZE,
 };
-use crate::get_font;
+use crate::font;
 
 /// Makes sure the board part of fen is valid, doesn't check if there are 5 kings, 500 pawns, etc
 pub(crate) fn validate_fen(fen: &str) -> bool {
@@ -256,7 +256,7 @@ impl Button {
             font_size: 15,
             font_scale: 1.0,
             color: COLOR_WHITE,
-            font: get_font(),
+            font: font(),
             ..Default::default()
         };
         Button {
@@ -274,7 +274,7 @@ impl Button {
 
     pub(crate) fn update(&mut self) -> bool {
         self.hover = touches(
-            get_camera().mouse_position().into(),
+            camera().mouse_position().into(),
             (self.x, self.y, self.w, self.h),
         );
         if self.hover {

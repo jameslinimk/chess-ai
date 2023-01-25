@@ -19,7 +19,7 @@ use macroquad::prelude::{next_frame, Conf};
 use macroquad::text::Font;
 use macroquad::window::clear_background;
 
-use crate::camera::get_camera;
+use crate::camera::camera;
 
 pub(crate) mod agent;
 pub(crate) mod agent_opens;
@@ -83,7 +83,7 @@ fn config() -> Conf {
 static mut FONT: Option<Font> = None;
 
 /// Safely get [FONT] in safe code
-pub(crate) fn get_font() -> Font {
+pub(crate) fn font() -> Font {
     unsafe { FONT.unwrap() }
 }
 
@@ -210,7 +210,7 @@ async fn main() {
     loop {
         clear_background(COLOR_BACKGROUND);
         game.update();
-        get_camera().update();
+        camera().update();
         next_frame().await;
     }
 }

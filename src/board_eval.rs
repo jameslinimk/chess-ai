@@ -127,17 +127,17 @@ pub(crate) fn piece_value(piece: &PieceNames) -> i32 {
     }
 }
 
-pub(crate) fn full_piece_value(piece: &Piece, endgame: bool) -> i32 {
-    piece_value(&piece.name) + table_value(piece, endgame)
+fn full_piece_value(piece: &Piece, endgame: bool) -> i32 {
+    piece.value() + table_value(piece, endgame)
 }
 
-pub(crate) const CHECK_VALUE: i32 = 50;
-pub(crate) const CHECKMATE_VALUE: i32 = 20000;
-pub(crate) const STALEMATE_VALUE: i32 = -100;
+const CHECK_VALUE: i32 = 50;
+const CHECKMATE_VALUE: i32 = 20000;
+const STALEMATE_VALUE: i32 = -100;
 
 impl Board {
-    pub(crate) fn get_sorted_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
-        let mut moves = self.get_moves(color);
+    pub(crate) fn sorted_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
+        let mut moves = self.moves(color);
 
         color_ternary!(
             color,
@@ -155,7 +155,7 @@ impl Board {
     }
 
     /// Calculates the score of the board, for the white
-    pub(crate) fn get_score(&self) -> i32 {
+    pub(crate) fn score(&self) -> i32 {
         let mut score = 0;
 
         match self.state {
@@ -184,7 +184,7 @@ impl Board {
         score
     }
 
-    pub(crate) fn move_value(&self, from: &Loc, to: &Loc) -> i32 {
+    fn move_value(&self, from: &Loc, to: &Loc) -> i32 {
         let piece = match self.get(from) {
             Some(piece) => piece,
             None => {
@@ -217,7 +217,7 @@ impl Board {
 
         // Add value based on capture
         if let Some(capture_pos) = self.is_capture(from, to) {
-            score += piece.get_value() - self.get(&capture_pos).unwrap().get_value();
+            score += piece.value() - self.get(&capture_pos).unwrap().value();
         }
 
         score

@@ -6,7 +6,7 @@ use macroquad::prelude::{
 use crate::conf::{HEIGHT, WIDTH};
 
 static mut CAMERA: Option<Camera> = None;
-pub(crate) fn get_camera() -> &'static mut Camera {
+pub(crate) fn camera() -> &'static mut Camera {
     unsafe {
         if CAMERA.is_none() {
             CAMERA = Some(Camera::new());
