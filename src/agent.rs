@@ -190,11 +190,11 @@ fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
 
         let time_took = get_time() - start_time;
         if time_took > MAX_TIME || score == TIMEOUT_SCORE {
-            println!(" - Timeout at depth {i}");
+            info!(" - Timeout at depth {}", i);
             break;
         }
 
-        println!("Depth: {i} took {time_took}s");
+        info!("Depth: {} took {}s", i, time_took);
 
         best_move = bm;
         if score == MAX {
