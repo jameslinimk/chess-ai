@@ -17,6 +17,7 @@
 
 use macroquad::prelude::info;
 use macroquad::rand::ChooseRandom;
+use macroquad::time::get_time;
 use rustc_hash::FxHashMap;
 
 use crate::agent_opens::OPENINGS;
@@ -30,8 +31,8 @@ fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
     moves.choose().copied()
 }
 
-const DEPTH: u8 = 4;
 const MAX: i32 = i32::MAX - 1;
+const TIMEOUT_SCORE: i32 = i32::MAX - 2;
 
 /// Minimax agent with alpha-beta pruning and sorted move ordering
 #[allow(clippy::type_complexity)]
@@ -42,6 +43,7 @@ fn minimax(
     mut alpha: i32,
     mut beta: i32,
     trans_table: &mut FxHashMap<u64, (u8, i32, Option<(Loc, Loc)>)>,
+    start_time: f64,
 ) -> (i32, Option<(Loc, Loc)>) {
     if maximizing {
         assert_eq!(board.turn, ChessColor::White);
@@ -54,11 +56,9 @@ fn minimax(
         return (board.score, None);
     }
 
-    // Openings
-    if depth == DEPTH {
-        // Very first move
-        if board.full_moves() == 0 && board.agent_color == ChessColor::Black {
-            macro_rules! responses {
+    // Very first move
+    if board.full_moves() == 0 && board.agent_color == ChessColor::Black {
+        macro_rules! responses {
                 ($($key:expr => $value:expr,)+) => { responses!($($key => $value),+) };
                 ($($key:expr => $value:expr),*) => {
                     $(
@@ -73,23 +73,23 @@ fn minimax(
                 };
             }
 
-            responses! {
-                // e4 -> e5, e6, c5
-                (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5")],
-                // d4 -> d5, c6, Nf6, Nc6
-                (PieceNames::Pawn, "d4") => [("d7", "d5"), ("g8", "f6"), ("b8", "c6")],
-                // c4 -> e5, Nf6
-                (PieceNames::Pawn, "c4") => [("e7", "e5"), ("g8", "f6")],
-                // Nf3 -> e5, Nf6
-                (PieceNames::Knight, "f3") => [("e7", "e5"), ("g8", "f6")],
-            };
-        }
+        responses! {
+            // e4 -> e5, e6, c5
+            (PieceNames::Pawn, "e4") => [("e7", "e5"), ("e7", "e6"), ("c7", "c5")],
+            // d4 -> d5, c6, Nf6, Nc6
+            (PieceNames::Pawn, "d4") => [("d7", "d5"), ("g8", "f6"), ("b8", "c6")],
+            // c4 -> e5, Nf6
+            (PieceNames::Pawn, "c4") => [("e7", "e5"), ("g8", "f6")],
+            // Nf3 -> e5, Nf6
+            (PieceNames::Knight, "f3") => [("e7", "e5"), ("g8", "f6")],
+        };
+    }
 
-        if let Some(moves) = OPENINGS.get(&board.hash) {
-            let (opening, name) = choose_array(moves);
-            info!("Opening found! {}", name);
-            return (MAX, Some(*opening));
-        }
+    // Openings
+    if let Some(moves) = OPENINGS.get(&board.hash) {
+        let (opening, name) = choose_array(moves);
+        info!("Opening found! {}", name);
+        return (MAX, Some(*opening));
     }
 
     // Check if the current board state is already stored in the transposition table
@@ -124,10 +124,16 @@ fn minimax(
             alpha,
             beta,
             trans_table,
+            start_time,
         );
 
         if score == MAX {
             return (score, Some((*from, *to)));
+        }
+
+        // Break if taking too long
+        if get_time() - start_time > MAX_TIME {
+            return (TIMEOUT_SCORE, None);
         }
 
         // Update the best score and best move
@@ -156,12 +162,46 @@ fn minimax(
     (best_score, best_move)
 }
 
-/// Wrapper for minimax
+const MAX_TIME: f64 = 4.0;
+
+/// Wrapper for minimax, using iterative deepening
 fn minimax_agent(board: &Board) -> Option<(Loc, Loc)> {
     if board.is_over() {
         return None;
     }
-    let (_, best_move) = minimax(board, false, DEPTH, i32::MIN, i32::MAX, &mut hashmap! {});
+
+    let mut trans_table = hashmap! {};
+    let start_time = get_time();
+
+    let mut best_move = None;
+    let mut i = 0;
+    loop {
+        i += 1;
+
+        let (score, bm) = minimax(
+            board,
+            false,
+            i,
+            i32::MIN,
+            i32::MAX,
+            &mut trans_table,
+            start_time,
+        );
+
+        let time_took = get_time() - start_time;
+        if time_took > MAX_TIME || score == TIMEOUT_SCORE {
+            println!(" - Timeout at depth {i}");
+            break;
+        }
+
+        println!("Depth: {i} took {time_took}s");
+
+        best_move = bm;
+        if score == MAX {
+            break;
+        }
+    }
+
     best_move
 }
 
