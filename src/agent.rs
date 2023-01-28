@@ -176,6 +176,7 @@ fn minimax_agent(board: &Board, antimax: bool) -> Option<(Loc, Loc)> {
 
     let mut trans_table = hashmap! {};
     let start_time = get_time();
+    let mut last_time = start_time;
 
     let mut best_move = None;
     let mut i = 0;
@@ -193,13 +194,21 @@ fn minimax_agent(board: &Board, antimax: bool) -> Option<(Loc, Loc)> {
             antimax,
         );
 
+        let last_took = get_time() - last_time;
+        last_time = get_time();
         let time_took = get_time() - start_time;
+
         if time_took > MAX_TIME || score == TIMEOUT_SCORE {
             info!(" - Timeout at depth {}", i);
             break;
         }
 
-        info!("Depth: {} took {}s", i, time_took);
+        if time_took + last_took * 2.0 > MAX_TIME {
+            info!(" - Last time timeout at depth {}", i);
+            break;
+        }
+
+        info!("Depth: {} took {:.3}s (total: {:.3}s)", i, last_took, time_took);
 
         best_move = bm;
         if score == MAX {
@@ -210,8 +219,8 @@ fn minimax_agent(board: &Board, antimax: bool) -> Option<(Loc, Loc)> {
     best_move
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// List of agents for [Board] to use
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Agent {
     Minimax,
     Antimax,
