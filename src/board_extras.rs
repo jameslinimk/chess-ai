@@ -71,6 +71,8 @@ impl Board {
             _ => panic!("Invalid FEN (turn)"),
         };
 
+        board.castle_white = (false, false);
+        board.castle_black = (false, false);
         let castle_fen = fen_parts.next().unwrap_or_else(|| panic!("Invalid FEN!"));
         for char in castle_fen.chars() {
             match char {
@@ -86,14 +88,26 @@ impl Board {
         match fen_parts.next().unwrap_or_else(|| panic!("Invalid FEN!")) {
             "-" => {}
             en_passant => {
-                let loc = Loc::from_notation(en_passant);
-                board.en_passent = Some((
-                    loc,
-                    board
-                        .get(&loc)
-                        .unwrap_or_else(|| panic!("Invalid FEN! (en passent)"))
-                        .color,
-                ));
+                let target = Loc::from_notation(en_passant);
+                let (pawn_loc, out, pawn_color) = match board.turn {
+                    ChessColor::White => {
+                        let (loc, out) = target.copy_move_i32(0, 1);
+                        (loc, out, ChessColor::Black)
+                    }
+                    ChessColor::Black => {
+                        let (loc, out) = target.copy_move_i32(0, -1);
+                        (loc, out, ChessColor::White)
+                    }
+                };
+
+                if out
+                    || board.get(&pawn_loc).map(|piece| (piece.name, piece.color))
+                        != Some((PieceNames::Pawn, pawn_color))
+                {
+                    panic!("Invalid FEN! (en passent)");
+                }
+
+                board.en_passent = Some((pawn_loc, pawn_color));
             }
         }
 
@@ -111,6 +125,7 @@ impl Board {
             color_ternary!(board.turn, (full_moves - 1) * 2, (full_moves - 1) * 2 + 1);
 
         board.update_things(true);
+        board.hash = board.hash();
         board
     }
 
@@ -161,23 +176,31 @@ impl Board {
         {
             fen.push('-');
         } else {
-            if self.castle_white.0 {
+            if self.castle_white.1 {
                 fen.push('K');
             }
-            if self.castle_white.1 {
+            if self.castle_white.0 {
                 fen.push('Q');
             }
-            if self.castle_black.0 {
+            if self.castle_black.1 {
                 fen.push('k');
             }
-            if self.castle_black.1 {
+            if self.castle_black.0 {
                 fen.push('q');
             }
         }
 
         fen.push(' ');
-        if let Some(en_passent) = self.en_passent {
-            fen.push_str(&en_passent.0.as_notation())
+        if let Some((en_passent, color)) = self.en_passent {
+            let (target, out) = color_ternary!(
+                color,
+                en_passent.copy_move_i32(0, 1),
+                en_passent.copy_move_i32(0, -1)
+            );
+            if out {
+                panic!("Invalid en passent state");
+            }
+            fen.push_str(&target.as_notation())
         } else {
             fen.push('-');
         }
@@ -419,14 +442,57 @@ impl Board {
         )
     }
 
-    /// Returns a hash of the board, with castling and en passent included
+    /// Returns a hash of the board, with turn, castling and en passent included
     pub(crate) fn hash(&self) -> u64 {
         let mut hasher = FxHasher::default();
         self.raw.hash(&mut hasher);
+        self.turn.hash(&mut hasher);
         self.castle_white.hash(&mut hasher);
         self.castle_black.hash(&mut hasher);
         self.en_passent.hash(&mut hasher);
         hasher.finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::board::Board;
+
+    #[test]
+    fn hash_includes_side_to_move() {
+        let white = Board::from_fen("8/8/8/8/8/8/4P3/K6k w - - 0 1");
+        let black = Board::from_fen("8/8/8/8/8/8/4P3/K6k b - - 0 1");
+
+        assert_ne!(white.hash, black.hash);
+    }
+
+    #[test]
+    fn fen_parses_no_castling_rights() {
+        let board = Board::from_fen("8/8/8/8/8/8/4P3/K6k w - - 0 1");
+
+        assert_eq!(board.castle_white, (false, false));
+        assert_eq!(board.castle_black, (false, false));
+    }
+
+    #[test]
+    fn fen_writes_castling_in_standard_order() {
+        let mut board = Board::from_fen("8/8/8/8/8/8/4P3/K6k w - - 0 1");
+        board.castle_white = (true, false);
+        board.castle_black = (false, true);
+
+        assert_eq!(board.as_fen(), "8/8/8/8/8/8/4P3/K6k w Qk - 0 1");
+    }
+
+    #[test]
+    fn fen_parses_and_writes_en_passant_target_square() {
+        let board = Board::from_fen("4k3/8/8/4p3/8/8/8/4K3 w - e6 0 1");
+
+        assert_eq!(
+            board.en_passent,
+            Some((Loc::from_notation("e5"), ChessColor::Black))
+        );
+        assert_eq!(board.as_fen(), "4k3/8/8/4p3/8/8/8/4K3 w - e6 0 1");
     }
 }
 

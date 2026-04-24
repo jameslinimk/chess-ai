@@ -139,17 +139,10 @@ impl Board {
     pub(crate) fn sorted_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
         let mut moves = self.moves(color);
 
-        color_ternary!(
-            color,
-            moves.sort_unstable_by(|a, b| {
-                self.move_value(&a.0, &a.1)
-                    .cmp(&self.move_value(&b.0, &b.1))
-            }),
-            moves.sort_unstable_by(|a, b| {
-                self.move_value(&b.0, &b.1)
-                    .cmp(&self.move_value(&a.0, &a.1))
-            })
-        );
+        moves.sort_unstable_by(|a, b| {
+            self.move_value(&b.0, &b.1)
+                .cmp(&self.move_value(&a.0, &a.1))
+        });
 
         moves
     }
@@ -197,11 +190,11 @@ impl Board {
 
         match piece.name {
             // Promoting pawn
-            PieceNames::Pawn if piece.pos.1 == 7 || piece.pos.1 == 0 => {
+            PieceNames::Pawn if to.1 == 7 || to.1 == 0 => {
                 return i32::MAX;
             }
             // Moving king with no castle during the non-endgame
-            PieceNames::King if self.endgame && from.0.abs_diff(to.0) != 2 => {
+            PieceNames::King if !self.endgame && from.0.abs_diff(to.0) != 2 => {
                 score -= 20;
             }
             // Moving king without developed minors
@@ -215,11 +208,42 @@ impl Board {
         let table = piece_table(&piece.name, &piece.color, self.endgame);
         score += table[to.1][to.0] - table[from.1][from.0];
 
-        // Add value based on capture
+        // Add value based on capture (MVV-LVA style)
         if let Some(capture_pos) = self.is_capture(from, to) {
-            score += piece.value() - self.get(&capture_pos).unwrap().value();
+            let capture = self.get(&capture_pos).unwrap();
+            score += capture.value() * 10 - piece.value();
         }
 
         score
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::board::Board;
+    use crate::util::Loc;
+
+    #[test]
+    fn promotion_move_value_uses_destination_square() {
+        let board = Board::from_fen("4k3/4P3/8/8/8/8/8/4K3 w - - 0 1");
+
+        assert_eq!(
+            board.move_value(&Loc::from_notation("e7"), &Loc::from_notation("e8")),
+            i32::MAX
+        );
+    }
+
+    #[test]
+    fn move_ordering_prefers_big_captures_with_small_attackers() {
+        let board = Board::from_fen("7k/8/8/3p1q2/4P3/8/8/3Q3K w - - 0 1");
+        let pawn_capture = board.move_value(&Loc::from_notation("e4"), &Loc::from_notation("f5"));
+        let queen_capture = board.move_value(&Loc::from_notation("d1"), &Loc::from_notation("d5"));
+
+        assert!(pawn_capture > queen_capture);
+        assert_eq!(
+            board.sorted_moves(ChessColor::White).first(),
+            Some(&(Loc::from_notation("e4"), Loc::from_notation("f5")))
+        );
     }
 }

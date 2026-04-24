@@ -9,8 +9,6 @@
 //!
 //! Clone and build using `cargo build`
 
-#![feature(future_join)]
-
 #[cfg(not(target_family = "wasm"))]
 use colored::{Color, Colorize};
 use conf::{COLOR_BACKGROUND, HEIGHT, WIDTH};
@@ -88,8 +86,7 @@ pub(crate) fn font() -> Font {
 }
 
 async fn load_images() {
-    use std::future::join;
-
+    use futures::join;
     use macroquad::text::load_ttf_font_from_bytes;
 
     use crate::assets::{load_audio_from_bytes, load_image_from_bytes};
@@ -134,8 +131,7 @@ async fn load_images() {
         load!("white_king.png"),
         load_audio!("move.wav"),
         load_audio!("capture.wav"),
-    )
-    .await;
+    );
 }
 
 #[cfg(not(target_family = "wasm"))]

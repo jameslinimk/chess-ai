@@ -34,6 +34,10 @@ fn random_agent(board: &Board) -> Option<(Loc, Loc)> {
 const MAX: i32 = i32::MAX - 1;
 const TIMEOUT_SCORE: i32 = i32::MAX - 2;
 
+fn should_store_transposition(stored_depth: Option<u8>, depth: u8) -> bool {
+    stored_depth.map_or(true, |stored_depth| stored_depth < depth)
+}
+
 /// Minimax agent with alpha-beta pruning and sorted move ordering
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn minimax(
@@ -96,14 +100,15 @@ fn minimax(
     }
 
     // Check if the current board state is already stored in the transposition table
-    let stored_data = trans_table.get(&board.hash);
-    let mut greater_depth = false;
-    if let Some((stored_depth, stored_score, stored_best)) = stored_data {
-        if stored_depth >= &depth {
-            return (*stored_score, *stored_best);
-        }
-        greater_depth = true;
-    }
+    let should_store =
+        if let Some((stored_depth, stored_score, stored_best)) = trans_table.get(&board.hash) {
+            if stored_depth >= &depth {
+                return (*stored_score, *stored_best);
+            }
+            should_store_transposition(Some(*stored_depth), depth)
+        } else {
+            should_store_transposition(None, depth)
+        };
 
     // Get the sorted legal moves for the current turn
     let moves = color_ternary!(
@@ -160,10 +165,31 @@ fn minimax(
     }
 
     // Store the data in the transposition table
-    if greater_depth {
+    if should_store {
         trans_table.insert(board.hash, (depth, best_score, best_move));
     }
     (best_score, best_move)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn transposition_entries_store_when_missing() {
+        assert!(should_store_transposition(None, 3));
+    }
+
+    #[test]
+    fn transposition_entries_store_when_new_depth_is_greater() {
+        assert!(should_store_transposition(Some(2), 3));
+    }
+
+    #[test]
+    fn transposition_entries_do_not_store_when_existing_depth_is_deeper() {
+        assert!(!should_store_transposition(Some(3), 2));
+        assert!(!should_store_transposition(Some(3), 3));
+    }
 }
 
 const MAX_TIME: f64 = 4.0;
@@ -208,7 +234,10 @@ fn minimax_agent(board: &Board, antimax: bool) -> Option<(Loc, Loc)> {
             break;
         }
 
-        info!("Depth: {} took {:.3}s (total: {:.3}s)", i, last_took, time_took);
+        info!(
+            "Depth: {} took {:.3}s (total: {:.3}s)",
+            i, last_took, time_took
+        );
 
         best_move = bm;
         if score == MAX {
