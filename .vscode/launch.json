@@ -1,33 +1,33 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "Debug executable 'chess-ai'",
-      "cargo": {
-        "args": ["build", "--bin=chess-ai", "--package=chess-ai"],
-        "filter": {
-          "name": "chess-ai",
-          "kind": "bin"
-        }
-      },
-      "args": [],
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "Debug unit tests in executable 'chess-ai'",
-      "cargo": {
-        "args": ["test", "--no-run", "--bin=chess-ai", "--package=chess-ai"],
-        "filter": {
-          "name": "chess-ai",
-          "kind": "bin"
-        }
-      },
-      "args": [],
-      "cwd": "${workspaceFolder}"
-    }
-  ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'chess-ai'",
+			"cargo": {
+				"args": ["build", "--bin=chess-ai", "--package=chess-ai"],
+				"filter": {
+					"name": "chess-ai",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'chess-ai'",
+			"cargo": {
+				"args": ["test", "--no-run", "--bin=chess-ai", "--package=chess-ai"],
+				"filter": {
+					"name": "chess-ai",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
 }
