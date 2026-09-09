@@ -11,5 +11,6 @@
 	"scripts": {
 		"serve": "node --loader ts-node/esm server.ts"
 	},
-	"type": "module"
+	"type": "module",
+	"packageManager": "pnpm@10.20.0"
 }

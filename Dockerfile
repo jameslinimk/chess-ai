@@ -39,7 +39,11 @@ FROM node:22-slim AS runtime
 
 WORKDIR /app/server
 
+# Corepack reads the pnpm version from the `packageManager` field in package.json. Without that
+# field it fetches whichever pnpm is newest at build time, so the image once resolved pnpm 12 while
+# the lockfile had been written by pnpm 10, and the install failed on a policy pnpm 12 added
 RUN corepack enable
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 # Installed before NODE_ENV is set, because ts-node and typescript are devDependencies and the
 # server runs the TypeScript directly rather than compiling it ahead of time
