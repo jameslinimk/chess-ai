@@ -1,0 +1,21 @@
+services:
+  chess-ai:
+    build:
+      context: .
+    image: chess-ai:latest
+    container_name: chess-ai
+    # The old deploy script kept the server up with a tmux session that did not survive a reboot
+    restart: unless-stopped
+    ports:
+      - "${CHESS_AI_PORT:-3252}:3252"
+    healthcheck:
+      # node:22 has fetch built in, so this needs nothing installed in the image
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3252/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -5,7 +5,7 @@
 
 use super::piece::Piece;
 use crate::board::{Board, ChessColor};
-use crate::util::Loc;
+use crate::util::{BitBoard, Loc};
 
 pub(crate) fn valid_pos(location: &Loc) -> bool {
     !(location.0 >= 8 || location.1 >= 8)
@@ -23,10 +23,10 @@ pub(crate) fn add(board: &Board, color: &ChessColor, location: Loc, moves: &mut 
     }
 }
 
-/// Adds to moves if the move is valid
-pub(crate) fn add_ff(location: Loc, moves: &mut Vec<Loc>) {
+/// Adds the square to the attack set if it is on the board
+pub(crate) fn add_ff(location: Loc, attacks: &mut BitBoard) {
     if valid_pos(&location) {
-        moves.push(location);
+        attacks.insert(location);
     }
 }
 
@@ -43,17 +43,15 @@ pub(crate) fn static_moves(piece: &Piece, board: &Board, directions: &[(i32, i32
     moves
 }
 
-/// Get all attack squares for static pieces
-pub(crate) fn static_attacks(piece: &Piece, directions: &[(i32, i32)]) -> Vec<Loc> {
-    let mut moves = vec![];
+/// Add all attack squares for static pieces to `attacks`
+pub(crate) fn static_attacks(piece: &Piece, directions: &[(i32, i32)], attacks: &mut BitBoard) {
     for (x, y) in directions.iter() {
         let (loc, out) = piece.pos.copy_move_i32(*x, *y);
         if out {
             continue;
         }
-        add_ff(loc, &mut moves);
+        add_ff(loc, attacks);
     }
-    moves
 }
 
 /// Get all moves for directional pieces
@@ -85,29 +83,26 @@ pub(crate) fn directional_moves(
     moves
 }
 
-/// Get all attack squares for directional pieces
+/// Add all attack squares for directional pieces to `attacks`
 pub(crate) fn directional_attacks(
     piece: &Piece,
     board: &Board,
     directions: &[(i32, i32)],
-) -> Vec<Loc> {
-    let mut moves = vec![];
+    attacks: &mut BitBoard,
+) {
     for (x, y) in directions.iter() {
         let (mut loc, out) = piece.pos.copy_move_i32(*x, *y);
         if out {
             continue;
         }
         while valid_pos(&loc) {
+            attacks.insert(loc);
             if board.get(&loc).is_some() {
-                moves.push(loc);
                 break;
             }
-            moves.push(loc);
-            let end = loc.move_i32(*x, *y);
-            if !end {
+            if !loc.move_i32(*x, *y) {
                 break;
             }
         }
     }
-    moves
 }

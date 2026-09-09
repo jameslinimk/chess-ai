@@ -18,13 +18,172 @@ use crate::conf::{
     MARGIN, SQUARE_SIZE,
 };
 use crate::pieces::piece::{Piece, PieceNames};
-use crate::util::{angle, board_to_pos_center, distance, project, validate_fen, Loc, Tween};
-use crate::{color_ternary, hashset, loc};
+use crate::util::{
+    angle, board_to_pos_center, distance, project, validate_fen, BitBoard, Loc, Tween,
+};
+use crate::{color_ternary, loc, ternary};
 
 #[rustfmt::skip]
 const ENUMERATES: [(usize, usize); 64] = [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (0, 1), (1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1), (0, 2), (1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2), (0, 3), (1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3), (7, 3), (0, 4), (1, 4), (2, 4), (3, 4), (4, 4), (5, 4), (6, 4), (7, 4), (0, 5), (1, 5), (2, 5), (3, 5), (4, 5), (5, 5), (6, 5), (7, 5), (0, 6), (1, 6), (2, 6), (3, 6), (4, 6), (5, 6), (6, 6), (7, 6), (0, 7), (1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7), (7, 7)];
 
+/// Raw 8x8 board data, without any of the metadata [Board] carries
+pub(crate) type Raw = [[Option<Piece>; 8]; 8];
+
+/// Whether `color` attacks `target` on `raw`
+///
+/// - Walks outwards from `target` looking for attackers, rather than building the attack set for
+///   the whole side, so it bails out as soon as it finds one and never allocates
+pub(crate) fn square_attacked(raw: &Raw, target: Loc, color: ChessColor) -> bool {
+    use crate::pieces::util::valid_pos;
+
+    macro_rules! attacker {
+        ($dx: expr, $dy: expr) => {{
+            let (loc, out) = target.copy_move_i32($dx, $dy);
+            if out || !valid_pos(&loc) {
+                None
+            } else {
+                raw[loc.1][loc.0].filter(|piece| piece.color == color)
+            }
+        }};
+    }
+
+    // Knights
+    for (dx, dy) in [
+        (1, 2),
+        (2, 1),
+        (2, -1),
+        (1, -2),
+        (-1, -2),
+        (-2, -1),
+        (-2, 1),
+        (-1, 2),
+    ] {
+        if let Some(piece) = attacker!(dx, dy) {
+            if piece.name == PieceNames::Knight {
+                return true;
+            }
+        }
+    }
+
+    // King
+    for (dx, dy) in [
+        (0, -1),
+        (0, 1),
+        (1, -1),
+        (1, 0),
+        (1, 1),
+        (-1, -1),
+        (-1, 0),
+        (-1, 1),
+    ] {
+        if let Some(piece) = attacker!(dx, dy) {
+            if piece.name == PieceNames::King {
+                return true;
+            }
+        }
+    }
+
+    // Pawns. A white pawn attacks towards a smaller y, so it sits below the square it attacks
+    let pawn_dy = color_ternary!(color, 1, -1);
+    for dx in [-1, 1] {
+        if let Some(piece) = attacker!(dx, pawn_dy) {
+            if piece.name == PieceNames::Pawn {
+                return true;
+            }
+        }
+    }
+
+    // Sliders, out along each ray until something blocks it
+    for (directions, slider) in [
+        ([(0, -1), (0, 1), (1, 0), (-1, 0)], PieceNames::Rook),
+        ([(1, 1), (1, -1), (-1, 1), (-1, -1)], PieceNames::Bishop),
+    ] {
+        for (dx, dy) in directions {
+            let (mut loc, out) = target.copy_move_i32(dx, dy);
+            if out {
+                continue;
+            }
+
+            while valid_pos(&loc) {
+                if let Some(piece) = raw[loc.1][loc.0] {
+                    if piece.color == color
+                        && (piece.name == slider || piece.name == PieceNames::Queen)
+                    {
+                        return true;
+                    }
+                    break;
+                }
+
+                if !loc.move_i32(dx, dy) {
+                    break;
+                }
+            }
+        }
+    }
+
+    false
+}
+
 impl Board {
+    /// Whether moving `from` to `to` would leave `color`'s own king attacked
+    ///
+    /// - Applies the move to a copy of the raw squares and asks one question of it. Doing this with
+    ///   `move_piece` instead rebuilt both attack sets, the blockers, the score and the hash, for
+    ///   every candidate move of every piece, at every node of the search
+    pub(crate) fn leaves_king_attacked(&self, from: &Loc, to: &Loc, color: ChessColor) -> bool {
+        let mut raw = self.raw;
+
+        let mut piece = match raw[from.1][from.0] {
+            Some(piece) => piece,
+            None => return false,
+        };
+
+        // En passent captures a pawn that is not on the destination square
+        if piece.name == PieceNames::Pawn && from.0 != to.0 && raw[to.1][to.0].is_none() {
+            if let Some((loc, ep_color)) = self.en_passent {
+                if to.0 == loc.0 && to.1.abs_diff(loc.1) == 1 && ep_color != piece.color {
+                    raw[loc.1][loc.0] = None;
+                }
+            }
+        }
+
+        // Castling brings the rook along, and the rook can block a check on the new king square
+        if piece.name == PieceNames::King && from.0.abs_diff(to.0) == 2 {
+            let (rook_from, rook_to) = ternary!(
+                to.0 == 2,
+                (loc!(0, to.1), loc!(3, to.1)),
+                (loc!(7, to.1), loc!(5, to.1))
+            );
+
+            if let Some(mut rook) = raw[rook_from.1][rook_from.0] {
+                rook.pos = rook_to;
+                raw[rook_to.1][rook_to.0] = Some(rook);
+                raw[rook_from.1][rook_from.0] = None;
+            }
+        }
+
+        piece.pos = *to;
+        raw[to.1][to.0] = Some(piece);
+        raw[from.1][from.0] = None;
+
+        let king = if piece.name == PieceNames::King {
+            *to
+        } else {
+            match raw
+                .iter()
+                .flatten()
+                .flatten()
+                .find(|piece| piece.name == PieceNames::King && piece.color == color)
+            {
+                Some(king) => king.pos,
+                None => return true,
+            }
+        };
+
+        let enemy = color_ternary!(color, ChessColor::Black, ChessColor::White);
+        square_attacked(&raw, king, enemy)
+    }
+
     /// Generate a new board given a FEN string
     pub(crate) fn from_fen(fen: &str) -> Board {
         let mut fen_parts = fen.split_whitespace();
@@ -111,7 +270,7 @@ impl Board {
             }
         }
 
-        board.fifty_rule = fen_parts
+        let half_move_clock: u32 = fen_parts
             .next()
             .unwrap_or_else(|| panic!("Invalid FEN!"))
             .parse()
@@ -121,8 +280,14 @@ impl Board {
             .unwrap_or_else(|| panic!("Invalid FEN!"))
             .parse()
             .unwrap_or_else(|_| panic!("Invalid FEN! (full moves)"));
+        if full_moves == 0 {
+            panic!("Invalid FEN! (full moves)");
+        }
         board.half_moves =
             color_ternary!(board.turn, (full_moves - 1) * 2, (full_moves - 1) * 2 + 1);
+        // `fifty_rule` is the `half_moves` the clock last reset at, not the clock itself, which is
+        // what `as_fen` writes back out as `half_moves - fifty_rule`
+        board.fifty_rule = board.half_moves.saturating_sub(half_move_clock);
 
         board.update_things(true);
         board.hash = board.hash();
@@ -206,7 +371,7 @@ impl Board {
         }
 
         fen.push(' ');
-        fen.push_str(&(self.half_moves - self.fifty_rule).to_string());
+        fen.push_str(&self.half_moves.saturating_sub(self.fifty_rule).to_string());
 
         fen.push(' ');
         fen.push_str(&(self.full_moves() + 1).to_string());
@@ -398,11 +563,11 @@ impl Board {
         (white_king, black_king)
     }
 
-    pub(crate) fn attacks(&mut self, color: ChessColor) -> FxHashSet<Loc> {
-        let mut attacks = hashset! {};
+    pub(crate) fn attacks(&self, color: ChessColor) -> BitBoard {
+        let mut attacks = BitBoard::default();
         for piece in self.raw.iter().flatten().flatten() {
             if piece.color == color {
-                attacks.extend(piece.attacks(self));
+                piece.attacks(self, &mut attacks);
             }
         }
         attacks
@@ -458,6 +623,75 @@ impl Board {
 mod tests {
     use super::*;
     use crate::board::Board;
+
+    /// Counts the leaf nodes of the move tree, the standard move generation sanity check
+    fn perft(board: &Board, depth: u32) -> u64 {
+        let moves = board.moves(board.turn);
+        if depth <= 1 {
+            return moves.len() as u64;
+        }
+
+        moves
+            .iter()
+            .map(|(from, to)| {
+                let mut next = board.clone();
+                next.move_piece(from, to, false);
+                perft(&next, depth - 1)
+            })
+            .sum()
+    }
+
+    fn check_perft(name: &str, fen: &str, expected: &[u64]) {
+        let board = Board::from_fen(fen);
+        for (i, want) in expected.iter().enumerate() {
+            assert_eq!(
+                perft(&board, i as u32 + 1),
+                *want,
+                "{} at depth {}",
+                name,
+                i + 1
+            );
+        }
+    }
+
+    /// Node counts against the published values for the standard test positions
+    #[test]
+    fn perft_matches_the_reference_counts() {
+        check_perft("start", crate::conf::DEFAULT_FEN, &[20, 400, 8902, 197_281]);
+
+        // Pawn and en passent heavy
+        check_perft(
+            "position 3",
+            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            &[14, 191, 2812, 43238, 674_624],
+        );
+
+        // Middlegame with both sides castled
+        check_perft(
+            "position 6",
+            "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+            &[46, 2079, 89890],
+        );
+    }
+
+    /// Pins the one place the move generator knowingly departs from the rules
+    ///
+    /// - `move_actions` always promotes to a queen, and a move is a bare `(from, to)` pair with
+    ///   nowhere to record the chosen piece, so the three underpromotions are never generated.
+    ///   Position 5 has exactly one promotion available, dxc8, which the rules count as four moves
+    /// - The reference counts here are 44 and 4085603. If underpromotion is ever added, these
+    ///   numbers should become the reference ones
+    #[test]
+    fn underpromotions_are_the_only_missing_moves() {
+        let board = Board::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+        assert_eq!(perft(&board, 1), 44 - 3);
+
+        // Kiwipete, whose only remaining gap at depth 4 is 11379 unreachable underpromotions
+        let kiwipete =
+            Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        assert_eq!(perft(&kiwipete, 3), 97862);
+        assert_eq!(perft(&kiwipete, 4), 4_085_603 - 11_379);
+    }
 
     #[test]
     fn hash_includes_side_to_move() {

@@ -280,44 +280,48 @@ impl Game {
         self.update_buttons();
         self.update_arrows_highlights();
 
-        if self.agent == Agent::Control || self.board.turn == self.board.player_color {
-            if let Some(clicked) = self.clicked_square(MouseButton::Left) {
-                // Click same place
-                if self.selected.is_some() && self.selected.unwrap().pos == clicked {
-                    self.selected = None;
-                    self.highlight_moves.clear();
-                // Move (Clicked highlighted piece)
-                } else if self.highlight_moves.contains(&clicked) {
-                    self.move_piece(&self.selected.unwrap().pos, &clicked);
-                    // Clicked a new place
-                } else if let Some(piece) = self.board.get(&clicked) {
-                    if piece.color == self.board.turn {
-                        self.selected = Some(piece);
-                        self.highlight_moves = self.selected.unwrap().moves(&self.board);
+        // Once the game is finished no more moves are accepted, and the agent is no longer
+        // asked to think (which spawned a thread per frame that immediately returned `None`)
+        if !self.board.is_over() {
+            if self.agent == Agent::Control || self.board.turn == self.board.player_color {
+                if let Some(clicked) = self.clicked_square(MouseButton::Left) {
+                    // Click same place
+                    if self.selected.is_some() && self.selected.unwrap().pos == clicked {
+                        self.selected = None;
+                        self.highlight_moves.clear();
+                    // Move (Clicked highlighted piece)
+                    } else if self.highlight_moves.contains(&clicked) {
+                        self.move_piece(&self.selected.unwrap().pos, &clicked);
+                        // Clicked a new place
+                    } else if let Some(piece) = self.board.get(&clicked) {
+                        if piece.color == self.board.turn {
+                            self.selected = Some(piece);
+                            self.highlight_moves = self.selected.unwrap().moves(&self.board);
+                        }
                     }
                 }
-            }
-        } else if self.waiting_on_agent {
-            if let Ok(mov) = self.agent_channel.1.try_recv() {
-                self.waiting_on_agent = false;
-                if let Some(m) = mov {
-                    self.move_piece(&m.0, &m.1);
+            } else if self.waiting_on_agent {
+                if let Ok(mov) = self.agent_channel.1.try_recv() {
+                    self.waiting_on_agent = false;
+                    if let Some(m) = mov {
+                        self.move_piece(&m.0, &m.1);
+                    }
                 }
-            }
-        } else {
-            let agent = self.agent;
-            let board = self.board.clone();
-            self.waiting_on_agent = true;
-            #[cfg(target_family = "wasm")]
-            {
-                self.agent_channel.0.send(agent.get_move(&board)).unwrap();
-            }
-            #[cfg(not(target_family = "wasm"))]
-            {
-                let sender = self.agent_channel.0.clone();
-                spawn(move || {
-                    sender.send(agent.get_move(&board)).unwrap();
-                });
+            } else {
+                let agent = self.agent;
+                let board = self.board.clone();
+                self.waiting_on_agent = true;
+                #[cfg(target_family = "wasm")]
+                {
+                    self.agent_channel.0.send(agent.get_move(&board)).unwrap();
+                }
+                #[cfg(not(target_family = "wasm"))]
+                {
+                    let sender = self.agent_channel.0.clone();
+                    spawn(move || {
+                        sender.send(agent.get_move(&board)).unwrap();
+                    });
+                }
             }
         }
 

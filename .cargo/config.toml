@@ -1,0 +1,6 @@
+# Macroquad's web backend gets `console_log`, `canvas_width`, the `gl*` calls and friends from
+# `server/static/mq_js_bundle.js` at instantiation time, so they are undefined when the wasm is
+# linked. Older toolchains tolerated that; rust-lld now refuses unless it is told to emit them as
+# imports, which fails the build with ~20 "undefined symbol" errors.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--allow-undefined"]

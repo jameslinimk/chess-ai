@@ -162,6 +162,50 @@ impl Loc {
     pub(crate) fn as_f32(&self) -> (f32, f32) {
         (self.0 as f32, self.1 as f32)
     }
+
+    /// This square as a single set bit, for [BitBoard]
+    fn bit(&self) -> u64 {
+        1 << (self.1 * 8 + self.0)
+    }
+}
+
+/// A set of board squares, held as one bit per square
+///
+/// - This is what the attack and blocker sets use. They used to be `FxHashSet<Loc>`, which meant a
+///   heap allocation and 40-odd hash insertions to build, and another allocation to clone, for
+///   every position the search touched. A `u64` builds with `|=`, is tested with `&`, counts with
+///   `count_ones`, and copies in a register
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub(crate) struct BitBoard(u64);
+
+impl BitBoard {
+    pub(crate) fn contains(&self, loc: &Loc) -> bool {
+        self.0 & loc.bit() != 0
+    }
+
+    pub(crate) fn insert(&mut self, loc: Loc) {
+        self.0 |= loc.bit();
+    }
+
+    /// How many squares are in the set
+    pub(crate) fn count(&self) -> u32 {
+        self.0.count_ones()
+    }
+
+    /// Takes `self` by value so iterating doesn't borrow the board it came from
+    pub(crate) fn iter(self) -> impl Iterator<Item = Loc> {
+        let mut bits = self.0;
+
+        std::iter::from_fn(move || {
+            if bits == 0 {
+                return None;
+            }
+
+            let index = bits.trailing_zeros() as usize;
+            bits &= bits - 1;
+            Some(loc!(index % 8, index / 8))
+        })
+    }
 }
 
 /// Sees if a rectangle contains a point

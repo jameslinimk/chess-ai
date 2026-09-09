@@ -2,6 +2,8 @@
 //!
 //! Contains all the functions related to calculating the score of the board / move. Used for the minimax search
 
+use std::cmp::Reverse;
+
 use lazy_static::lazy_static;
 use macroquad::prelude::warn;
 use rustc_hash::FxHashMap;
@@ -132,19 +134,46 @@ fn full_piece_value(piece: &Piece, endgame: bool) -> i32 {
 }
 
 const CHECK_VALUE: i32 = 50;
-const CHECKMATE_VALUE: i32 = 20000;
-const STALEMATE_VALUE: i32 = -100;
+pub(crate) const CHECKMATE_VALUE: i32 = 20000;
+/// A draw is worth the same to both sides, so it has to be neutral. A nonzero value here makes
+/// whichever side is minimizing hunt for stalemates and repetitions
+const STALEMATE_VALUE: i32 = 0;
 
 impl Board {
+    /// Order moves by `move_value`, best first
+    ///
+    /// - Scores each move once up front. Doing it inside the comparator re-evaluates every move
+    ///   O(log n) times, in the hottest loop of the search
+    fn sort_by_value(&self, moves: Vec<(Loc, Loc)>) -> Vec<(Loc, Loc)> {
+        let mut scored = moves
+            .into_iter()
+            .map(|(from, to)| (self.move_value(&from, &to), (from, to)))
+            .collect::<Vec<_>>();
+
+        scored.sort_unstable_by_key(|(score, _)| Reverse(*score));
+
+        scored.into_iter().map(|(_, m)| m).collect()
+    }
+
     pub(crate) fn sorted_moves(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
-        let mut moves = self.moves(color);
+        self.sort_by_value(self.moves(color))
+    }
 
-        moves.sort_unstable_by(|a, b| {
-            self.move_value(&b.0, &b.1)
-                .cmp(&self.move_value(&a.0, &a.1))
-        });
+    /// Legal captures and promotions only, ordered like [Board::sorted_moves]
+    ///
+    /// - This is what quiescence searches. Promotions are in here because they swing material as
+    ///   hard as a capture does
+    /// - Generates every legal move and filters, rather than having a second generator that only
+    ///   produces captures. Move legality is where this engine's bugs lived and the perft suite
+    ///   covers this path, so it is not worth duplicating for the speed
+    pub(crate) fn sorted_captures(&self, color: ChessColor) -> Vec<(Loc, Loc)> {
+        let captures = self
+            .moves(color)
+            .into_iter()
+            .filter(|(from, to)| self.is_capture(from, to).is_some() || self.is_promotion(from, to))
+            .collect();
 
-        moves
+        self.sort_by_value(captures)
     }
 
     /// Calculates the score of the board, for the white
@@ -171,8 +200,8 @@ impl Board {
         }
 
         // Add value based on attacks
-        score += self.attacks_white.len() as i32;
-        score -= self.attacks_black.len() as i32;
+        score += self.attacks_white.count() as i32;
+        score -= self.attacks_black.count() as i32;
 
         score
     }
@@ -223,6 +252,16 @@ mod tests {
     use super::*;
     use crate::board::Board;
     use crate::util::Loc;
+
+    #[test]
+    fn a_draw_is_worth_nothing_to_either_side() {
+        // Black to move and stalemated. Scoring a draw at -100 made whichever side was minimizing
+        // (the agent, which plays black) steer into stalemates and repetitions
+        let board = Board::from_fen("7k/5Q2/6K1/8/8/8/8/8 b - - 0 30");
+
+        assert_eq!(board.state, BoardState::Stalemate);
+        assert_eq!(board.score, 0);
+    }
 
     #[test]
     fn promotion_move_value_uses_destination_square() {

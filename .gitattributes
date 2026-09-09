@@ -1,3 +1,13 @@
 * text=auto eol=crlf
 *.png binary
 *.jpg binary
+
+# These are consumed on the Linux deploy host, where CRLF has historically confused the Dockerfile
+# parser and anything shell shaped. Override the global eol=crlf above.
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Vendored macroquad glue, kept byte for byte rather than line-ending normalised
+server/static/mq_js_bundle.js -text

@@ -2,7 +2,7 @@ use super::piece::Piece;
 use super::util::{add, add_ff, valid_pos};
 use crate::board::{Board, ChessColor};
 use crate::color_ternary;
-use crate::util::Loc;
+use crate::util::{BitBoard, Loc};
 
 /// Adds to moves if the move is on the board and is empty
 /// - Returns true if added, false else
@@ -35,8 +35,10 @@ pub(crate) fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     let direction = color_ternary!(piece.color, -1, 1);
 
     // Forward movement
-    let blocked = add_if_empty(board, piece.pos.copy_move_i32(0, direction).0, &mut moves);
-    if blocked && (piece.pos.1 == 1 || piece.pos.1 == 6) {
+    let empty_ahead = add_if_empty(board, piece.pos.copy_move_i32(0, direction).0, &mut moves);
+    // The double push is only available from the color's *own* starting rank
+    let start_rank = color_ternary!(piece.color, 6, 1);
+    if empty_ahead && piece.pos.1 == start_rank {
         add_if_empty(
             board,
             piece.pos.copy_move_i32(0, direction * 2).0,
@@ -78,16 +80,56 @@ pub(crate) fn pawn_moves(piece: &Piece, board: &Board) -> Vec<Loc> {
     moves
 }
 
-pub(crate) fn pawn_attacks(piece: &Piece) -> Vec<Loc> {
-    let mut moves = vec![];
+pub(crate) fn pawn_attacks(piece: &Piece, attacks: &mut BitBoard) {
     let direction = color_ternary!(piece.color, -1, 1);
 
-    for pos in [
-        piece.pos.copy_move_i32(1, direction).0,
-        piece.pos.copy_move_i32(-1, direction).0,
+    // `copy_move_i32` clamps a negative coordinate to 0 instead of failing, so the out of bounds
+    // flag has to be honored. Without it an a-file pawn "attacks" the square straight ahead of it
+    for (pos, out) in [
+        piece.pos.copy_move_i32(1, direction),
+        piece.pos.copy_move_i32(-1, direction),
     ] {
-        add_ff(pos, &mut moves)
+        if out {
+            continue;
+        }
+        add_ff(pos, attacks)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::board::{Board, ChessColor};
+    use crate::util::Loc;
+
+    #[test]
+    fn a_file_pawn_does_not_attack_the_square_ahead_of_it() {
+        // `copy_move_i32` clamps a negative file back onto the board instead of failing, so an a4
+        // pawn used to be recorded as attacking a5
+        let board = Board::from_fen("4k3/8/8/8/P7/8/8/4K3 w - - 0 30");
+
+        assert!(board.attacks_white.contains(&Loc::from_notation("b5")));
+        assert!(!board.attacks_white.contains(&Loc::from_notation("a5")));
     }
 
-    moves
+    #[test]
+    fn a_pawn_does_not_check_the_king_in_front_of_it() {
+        let board = Board::from_fen("8/8/8/k7/P7/8/8/4K3 b - - 0 30");
+
+        assert!(!board.check_black);
+    }
+
+    #[test]
+    fn pawns_only_double_push_from_their_own_start_rank() {
+        // A white pawn on rank 7 is one square from promoting and has no double push. The rank used
+        // to be checked without regard to color, which duplicated the single push
+        let board = Board::from_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 30");
+        let a7 = Loc::from_notation("a7");
+        let pushes = board
+            .moves(ChessColor::White)
+            .iter()
+            .filter(|(from, _)| *from == a7)
+            .count();
+
+        assert_eq!(pushes, 1);
+    }
 }

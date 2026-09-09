@@ -3,3 +3,7 @@
 node_modules
 *.js
 *.js.map
+
+# Macroquad's JS glue, vendored rather than built. The page is blank without it, so the `*.js`
+# rule above must not hide it from a fresh clone
+!server/static/mq_js_bundle.js

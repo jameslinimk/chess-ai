@@ -11,7 +11,7 @@ use crate::assets::get_image;
 use crate::board::{Board, ChessColor};
 use crate::board_eval::piece_value;
 use crate::color_ternary;
-use crate::util::Loc;
+use crate::util::{BitBoard, Loc};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub(crate) enum PieceNames {
@@ -56,27 +56,26 @@ impl Piece {
 
         if board.blockers.contains(&self.pos)
             || color_ternary!(self.color, board.check_white, board.check_black)
+            || (self.name == PieceNames::Pawn && board.en_passent.is_some())
         {
-            let new_board = board.clone();
-            temp_moves.retain(|&to| {
-                let mut new_board = new_board.clone();
-                new_board.move_piece(&self.pos, &to, false);
-                color_ternary!(self.color, !new_board.check_white, !new_board.check_black)
-            });
+            temp_moves.retain(|&to| !board.leaves_king_attacked(&self.pos, &to, self.color));
         }
 
         temp_moves
     }
 
-    /// Get squares that are attacked by this piece
-    pub(crate) fn attacks(&self, board: &Board) -> Vec<Loc> {
+    /// Add the squares attacked by this piece to `attacks`
+    ///
+    /// - Writes straight into the set rather than returning a `Vec`, which was a heap allocation
+    ///   per piece, twice per position, for every position the search looked at
+    pub(crate) fn attacks(&self, board: &Board, attacks: &mut BitBoard) {
         match self.name {
-            PieceNames::Pawn => pawn_attacks(self),
-            PieceNames::Knight => knight_attacks(self),
-            PieceNames::King => king_attacks(self),
-            PieceNames::Rook => rook_attacks(self, board),
-            PieceNames::Bishop => bishop_attacks(self, board),
-            PieceNames::Queen => queen_attacks(self, board),
+            PieceNames::Pawn => pawn_attacks(self, attacks),
+            PieceNames::Knight => knight_attacks(self, attacks),
+            PieceNames::King => king_attacks(self, attacks),
+            PieceNames::Rook => rook_attacks(self, board, attacks),
+            PieceNames::Bishop => bishop_attacks(self, board, attacks),
+            PieceNames::Queen => queen_attacks(self, board, attacks),
         }
     }
 
@@ -106,5 +105,31 @@ impl Piece {
     /// Get the piece value
     pub(crate) fn value(&self) -> i32 {
         piece_value(&self.name)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::board::{Board, ChessColor};
+    use crate::util::Loc;
+
+    #[test]
+    fn en_passent_cannot_expose_the_king_along_the_rank() {
+        // Ka5, Pb5, pc5 (which just played c7-c5) and rh5 all share rank 5. Capturing bxc6 e.p.
+        // takes *two* pawns off that rank at once, so the rook would be giving check. The pawn is
+        // not itself attacked, so it never landed in `blockers` and the legality check was skipped
+        let board = Board::from_fen("7k/8/8/KPp4r/8/8/8/8 w - c6 0 30");
+        let ep = (Loc::from_notation("b5"), Loc::from_notation("c6"));
+
+        assert!(!board.check_white, "white should not be in check yet");
+        assert!(!board.moves(ChessColor::White).contains(&ep));
+    }
+
+    #[test]
+    fn en_passent_is_still_legal_when_it_exposes_nothing() {
+        let board = Board::from_fen("7k/8/8/1Pp5/8/8/8/K7 w - c6 0 30");
+        let ep = (Loc::from_notation("b5"), Loc::from_notation("c6"));
+
+        assert!(board.moves(ChessColor::White).contains(&ep));
     }
 }

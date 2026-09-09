@@ -1,7 +1,7 @@
 import express from "express"
 import { resolve } from "path"
 
-const port = 3252
+const port = Number(process.env.PORT) || 3252
 const app = express()
 
 app.use("/docs", express.static(resolve("../target/doc/chess_ai")))

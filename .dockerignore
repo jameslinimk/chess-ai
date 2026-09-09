@@ -1,0 +1,25 @@
+# Build output is produced inside the image. Copying the host's `target/` in would send ~2GB of
+# context and risk baking a stale wasm into the image.
+target/
+
+# `**/` because a bare `node_modules` would only match the context root, leaving server/ behind
+**/node_modules
+
+.git/
+.gitignore
+.gitattributes
+.github/
+.vscode/
+.history/
+
+Dockerfile
+compose.yaml
+.dockerignore
+README.md
+
+# Only read by the `create_openings` test, which regenerates assets/openings_64.json. Verified not
+# to be needed by a release build
+openings/
+
+# NB: no `*.js` rule here, unlike .gitignore. `server/static/mq_js_bundle.js` is macroquad's JS
+# glue and the page is blank without it.

@@ -7,6 +7,39 @@ AI is a minimax search with alpha-beta pruning, transposition table, move-orderi
 - Release hosted at <https://chess.jamesalin.com>
 - Docs here <https://chess.jamesalin.com/docs>
 
+## Running the server
+
+The web build and the docs are served by a small Express app, packaged with Docker.
+
+```bash
+docker compose up -d --build
+```
+
+That builds the wasm game and the rustdoc output in a Rust stage, then serves them on
+<http://localhost:3252>. Set `CHESS_AI_PORT` to publish it somewhere else.
+
+To deploy an update, pull and rebuild:
+
+```bash
+git pull && docker compose up -d --build
+```
+
+Useful extras: `docker compose logs -f` to follow the server, `docker compose down` to stop it.
+The container restarts on its own unless it is explicitly stopped.
+
+### Building without Docker
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo build --target wasm32-unknown-unknown --release
+cargo doc --no-deps --release
+cd server && pnpm install && pnpm run serve
+```
+
+`.cargo/config.toml` passes `--allow-undefined` to the wasm linker. Macroquad takes `console_log`,
+`canvas_width`, the `gl*` calls and so on from `server/static/mq_js_bundle.js` at runtime, so they
+are undefined at link time and rust-lld rejects the build without it.
+
 ## How the AI works
 
 The chess AI uses the minimax algorithm with multiple other techniques to calculate the best move.
